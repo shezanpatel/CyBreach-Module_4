@@ -52,7 +52,7 @@ def set_score(
             payload.size,
         ]):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=422,
                 detail=(
                     "industry, region, and size are required "
                     "when tenant_id is provided"

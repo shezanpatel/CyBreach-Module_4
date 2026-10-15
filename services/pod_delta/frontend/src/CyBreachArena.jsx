@@ -217,14 +217,14 @@ const INITIAL_LEADERBOARD = [
   { rank:5, name:"ByteShield",     score:71, delta:-1  },
 ];
 
-const INITIAL_BADGES = [
+const _INITIAL_BADGES = [
   { id:"first",   icon:"🛡️", name:"First Detection", tier:"Bronze",   unlocked:true  },
   { id:"speed",   icon:"⚡", name:"Speed Runner",     tier:"Silver",   unlocked:true  },
   { id:"streak",  icon:"🔥", name:"7-Day Streak",     tier:"Gold",     unlocked:true  },
   { id:"hunter",  icon:"💎", name:"Threat Hunter",    tier:"Platinum", unlocked:false },
 ];
 
-const INITIAL_ACTIVITY = [
+const _INITIAL_ACTIVITY = [
   { icon:"◈", type:"credit", text:"+100 credits added via UPI top-up",           time:"2 HOURS AGO" },
   { icon:"✦", type:"badge",  text:"Gold badge earned — 7-Day Streak",            time:"YESTERDAY"   },
   { icon:"▷", type:"scan",   text:"Vulnerability Scan completed — 3 findings",   time:"2 DAYS AGO"  },
@@ -234,27 +234,6 @@ const INITIAL_ACTIVITY = [
 /* ============================================================
    UTILITY HOOKS
 ============================================================ */
-
-function useAnimatedNumber(target, duration = 900) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    let start = null;
-    let rafId;
-
-    const from = 0;
-    function step(ts) {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from + (target - from) * eased));
-      if (progress < 1) rafId = requestAnimationFrame(step);
-    }
-
-    rafId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafId);
-  }, [target, duration]);
-  return display;
-}
 
 function useToasts() {
   const [toasts, setToasts] = useState([]);
@@ -435,7 +414,7 @@ function SectionHeader({ title, action, onAction }) {
   );
 }
 
-function DeltaBadge({ value }) {
+function _DeltaBadge({ value }) {
   const up = value >= 0;
   return (
     <span style={{
@@ -1242,7 +1221,7 @@ function LeaderboardPanel({ entries }) {
   );
 }
 
-function BadgesPanel({ badges }) {
+function _BadgesPanel({ badges }) {
 
   const tier = {
     Bronze: { color: "#CD7F32", glow: "rgba(205,127,50,.35)" },
@@ -1402,7 +1381,7 @@ function BadgesPanel({ badges }) {
     </Panel>
   );
 }
-function ActivityFeed({ items }) {
+function _ActivityFeed({ items }) {
 
   const iconStyles = {
     credit: {
@@ -2250,66 +2229,12 @@ function Nav({ activeTab, setActiveTab, demoIdentity, onLogout }) {
   );
 }
 
-function HeroRow({ score, credits, agentCount, onTopUp, scoreLive = false }) {
-  const animatedScore = useAnimatedNumber(score, 1100);
-
-  return (
-    <div className="cba-hero-grid" style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr", gap:14, marginBottom:22 }}>
-      <Panel style={{ position:"relative", overflow:"hidden", padding:28 }}>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:T.border }} />
-        <Eyebrow>{scoreLive ? "Resilience Score · Pod Delta" : "Sample Resilience Score"}</Eyebrow>
-        <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:68, fontWeight:700, color:T.neon, lineHeight:1, letterSpacing:"-0.04em", animation:"countUp 0.5s ease" }}>
-          {animatedScore}
-        </div>
-        <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.25)", color:T.safe, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, padding:"3px 9px", borderRadius:2, marginTop:10 }}>
-          {scoreLive ? "Live value · trend unavailable" : "Sample change · +4 pts"}
-        </div>
-        <div style={{ marginTop:16, fontSize:12, color:T.muted }}>{scoreLive ? "Live score received from Pod Delta" : "Sample value · no score event received"}</div>
-        <div style={{ marginTop:12, height:3, background:T.border, borderRadius:2, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${score}%`, background:T.neon, borderRadius:2, transition:"width 1.2s ease" }} />
-        </div>
-      </Panel>
-
-      <Panel>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:T.border }} />
-        <Eyebrow>Sample Credit Balance</Eyebrow>
-        <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:44, fontWeight:700, lineHeight:1, marginBottom:4 }}>{credits}</div>
-        <div style={{ fontSize:12, color:T.muted, marginBottom:16 }}>demo credits · wallet is separate</div>
-        <div style={{ fontSize:11, color:T.muted, lineHeight:1.7 }}>
-          Sample expiry: <strong style={{ color:T.warn }}>61 days</strong><br />
-          Sample top-up: 3 days ago
-        </div>
-        <button
-          onClick={onTopUp}
-          className="cba-btn"
-          style={{ width:"100%", marginTop:16, padding:9, background:"transparent", border:`1px solid rgba(0,229,255,0.3)`, color:T.neon, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", borderRadius:8, cursor:"pointer" }}
-          onMouseEnter={e => e.currentTarget.style.background="rgba(0,229,255,0.08)"}
-          onMouseLeave={e => e.currentTarget.style.background="transparent"}
-        >＋ Purchase Credits</button>
-      </Panel>
-
-      <Panel>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:T.border }} />
-        <Eyebrow>Sample Engagements (30 days)</Eyebrow>
-        <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:38, fontWeight:700, lineHeight:1, marginBottom:4 }}>{agentCount}</div>
-        <div style={{ fontSize:12, color:T.muted, marginBottom:16 }}>total executions</div>
-        {[["Vuln Scan",6],["Malware",3],["Compliance",3]].map(([label,val]) => (
-          <div key={label} style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:8 }}>
-            <span style={{ color:T.muted }}>{label}</span>
-            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:700 }}>{val}</span>
-          </div>
-        ))}
-      </Panel>
-    </div>
-  );
-}
-
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = globalCSS;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
-  }, []);
+  }, [globalCSS]);
 
   const [loggedIn, setLoggedIn]       = useState(false);
   const [leaderboard, setLeaderboard] = useState(INITIAL_LEADERBOARD);

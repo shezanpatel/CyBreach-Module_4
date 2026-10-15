@@ -434,8 +434,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         _request: Request,
         exc: InvalidTenantMetadataError,
     ) -> JSONResponse:
-        return _build_response(status.HTTP_422_UNPROCESSABLE_ENTITY, exc)
+        return _build_response(422, exc)
 
 
 app = create_app()
-
