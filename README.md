@@ -157,8 +157,10 @@ documentation is at <http://127.0.0.1:8000/api/docs>.
 ## Run tests
 
 The repository test runner covers root/Pod Beta, Pod Gamma, Pod Delta, and
-Wallet service tests. It expects the local Python environments and the Wallet
-test PostgreSQL container/environment described in the script to be present:
+Wallet service tests. It creates Python 3.12 virtual environments, installs
+each service's dependencies, and starts the Wallet test PostgreSQL container
+on port 55432 if needed. Install Python 3.12 with the Windows `py` launcher and
+Docker Desktop first:
 
 ```powershell
 .\run-all-tests.ps1
@@ -168,7 +170,7 @@ Run individual suites from their service directories when debugging:
 
 ```powershell
 Set-Location services\pod_gamma
-..\..\.venv\Scripts\python.exe -m pytest tests -q
+.\.venv\Scripts\python.exe -m pytest tests -q
 
 Set-Location ..\pod_delta
 .\.venv\Scripts\python.exe -m pytest -q

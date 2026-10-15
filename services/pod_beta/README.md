@@ -16,11 +16,11 @@ engagement. Do not present those demo scan reports as live security testing.
 ## Requirements
 
 - Python 3.12 recommended
-- FastAPI, Uvicorn, Pydantic 2, and SQLAlchemy 2
+- Python dependencies listed in [`requirements.txt`](requirements.txt)
 
-This source-only service currently has no dedicated `requirements.txt`, Docker
-Compose file, or separate Pod Beta test command. Install the dependencies in a
-virtual environment and run tests from the repository root using
+This source-only service has no Docker Compose file or separate Pod Beta test
+command. Install its dependencies in a virtual environment and run tests from
+the repository root using
 [`run-all-tests.ps1`](../../run-all-tests.ps1).
 
 ## Install and run (PowerShell)
@@ -32,7 +32,7 @@ Set-Location services\pod_beta
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install fastapi uvicorn "pydantic>=2,<3" "sqlalchemy>=2,<3"
+pip install -r requirements.txt
 ```
 
 Start the campaign catalog in one terminal:
