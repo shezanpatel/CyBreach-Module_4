@@ -1,0 +1,620 @@
+### Pod Delta - CyBreach Arena API
+### Requires the "REST Client" extension by Huachao Mao (VS Code Marketplace)
+### Usage: click "Send Request" above any request below. Set your variables first.
+
+@base_url = http://127.0.0.1:8000
+@jwt_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidGVuYW50X2lkIjoidGVuYW50XzEyMyIsImV4cCI6MTc5MDE4NDU3MX0.h7Amqo3x1eVzfWfnLaNPK_Er6UlWGu4zSIlAs4VwQdY@user_id = 1
+@tenant_id = tenant_123
+@notification_id = 1
+@analytics_id = 1
+
+
+##############################
+# HEALTH
+##############################
+
+### Root Health Check
+GET {{base_url}}/
+
+### Detailed Health Check
+GET {{base_url}}/api/v1/health
+
+### Integration Health
+GET {{base_url}}/api/v1/integration/health
+
+
+##############################
+# NOTIFICATIONS
+##############################
+
+### Create Notification
+POST {{base_url}}/api/v1/notifications/
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "title": "Security Alert",
+  "message": "Suspicious login detected",
+  "channel": "email",
+  "priority": "high"
+}
+
+### N-02 missing title
+POST {{base_url}}/api/v1/notifications/
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "message": "No title here",
+  "channel": "email",
+  "priority": "high"
+}
+### Create Notification - Invalid Channel (negative)
+POST {{base_url}}/api/v1/notifications/
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "title": "Bad Channel",
+  "message": "test",
+  "channel": "carrier_pigeon",
+  "priority": "high"
+}
+
+### Get All Notifications
+GET {{base_url}}/api/v1/notifications/
+Authorization: Bearer {{jwt_token}}
+
+### Get All - Filtered
+GET {{base_url}}/api/v1/notifications/?status=pending&channel=email&priority=high&is_read=false
+Authorization: Bearer {{jwt_token}}
+
+### Get User Notifications
+GET {{base_url}}/api/v1/notifications/user/{{user_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Get Unread Notifications
+GET {{base_url}}/api/v1/notifications/unread
+Authorization: Bearer {{jwt_token}}
+
+### Get Unread Count
+GET {{base_url}}/api/v1/notifications/unread/count
+Authorization: Bearer {{jwt_token}}
+
+### Get Notification Stats
+GET {{base_url}}/api/v1/notifications/stats
+Authorization: Bearer {{jwt_token}}
+
+### Update Notification
+PUT {{base_url}}/api/v1/notifications/{{notification_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "title": "Updated title"
+}
+
+### Mark as Read
+PATCH {{base_url}}/api/v1/notifications/{{notification_id}}/read
+Authorization: Bearer {{jwt_token}}
+
+### Update Status
+PATCH {{base_url}}/api/v1/notifications/{{notification_id}}/status
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "status": "delivered"
+}
+
+### Bulk Mark as Read
+PATCH {{base_url}}/api/v1/notifications/bulk/read
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "notification_ids": [1, 2, 3],
+  "is_read": true,
+  "status": "read"
+}
+
+### Bulk Delete
+DELETE {{base_url}}/api/v1/notifications/bulk
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "notification_ids": [1, 2, 3]
+}
+
+### Delete Notification
+DELETE {{base_url}}/api/v1/notifications/{{notification_id}}
+Authorization: Bearer {{jwt_token}}
+
+
+##############################
+# PREFERENCES
+##############################
+
+### Create Preferences
+POST {{base_url}}/api/v1/preferences/
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "user_id": {{user_id}},
+  "email": true,
+  "sms": false,
+  "in_app": true,
+  "push": true,
+  "webhook": false,
+  "quiet_hours_enabled": false,
+  "digest_enabled": false
+}
+
+### Get Preferences
+GET {{base_url}}/api/v1/preferences/{{user_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Update Preferences
+PUT {{base_url}}/api/v1/preferences/{{user_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "email": false
+}
+
+
+##############################
+# ANALYTICS
+##############################
+
+### Create Analytics Record
+POST {{base_url}}/api/v1/analytics
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "tenant_id": "{{tenant_id}}",
+  "resilience_score": 78,
+  "report_month": "2026-09"
+}
+
+### Get Analytics by ID
+GET {{base_url}}/api/v1/analytics/{{analytics_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Get Analytics by Tenant
+GET {{base_url}}/api/v1/analytics/tenant/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### List with Pagination/Filters
+GET {{base_url}}/api/v1/analytics?skip=0&limit=10&tenant_id={{tenant_id}}&min_score=0&max_score=100
+Authorization: Bearer {{jwt_token}}
+
+### Update Analytics Record
+PUT {{base_url}}/api/v1/analytics/{{analytics_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "resilience_score": 82
+}
+
+### Delete Analytics Record
+DELETE {{base_url}}/api/v1/analytics/{{analytics_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Dashboard
+GET {{base_url}}/api/v1/analytics/dashboard/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Credit Flow
+GET {{base_url}}/api/v1/analytics/credit-flow/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Engagement
+GET {{base_url}}/api/v1/analytics/engagement/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Score
+GET {{base_url}}/api/v1/analytics/score/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Score Trend
+GET {{base_url}}/api/v1/analytics/score-trend/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Monthly Report
+GET {{base_url}}/api/v1/analytics/report/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+
+##############################
+# INTEGRATION
+##############################
+
+### Integration Health
+GET {{base_url}}/api/v1/integration/health
+
+### Get Cached Score
+GET {{base_url}}/api/v1/integration/score/{{tenant_id}}
+Authorization: Bearer {{jwt_token}}
+
+### Prometheus Metrics
+GET {{base_url}}/metrics
+
+
+##############################
+# SECURITY - NEGATIVE CASES
+##############################
+
+### No Auth Header (should 401)
+GET {{base_url}}/api/v1/notifications/
+
+### Cross-Tenant Access Attempt (should 403/404, never return data)
+GET {{base_url}}/api/v1/analytics/tenant/tenant_someone_elses
+Authorization: Bearer {{jwt_token}}
+
+### N-03 invalid channel -> expect 422
+POST {{base_url}}/api/v1/notifications/
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "title": "Bad channel",
+  "message": "Fax is not a supported channel",
+  "channel": "fax",
+  "priority": "high"
+}
+
+### N-04 list all -> expect 200, includes id 2
+GET {{base_url}}/api/v1/notifications/
+
+### N-05 filter by channel + priority -> expect 200, only email/high
+GET {{base_url}}/api/v1/notifications/?channel=email&priority=high
+
+### N-06 user 1's notifications -> expect 200
+GET {{base_url}}/api/v1/notifications/user/1
+
+### N-07 unread list -> expect 200
+GET {{base_url}}/api/v1/notifications/unread
+
+### N-08 unread count -> expect 200, count >= 1
+GET {{base_url}}/api/v1/notifications/unread/count
+
+### N-09 stats -> expect 200
+GET {{base_url}}/api/v1/notifications/stats
+
+### N-10 update id 2 -> expect 200, new title
+PUT {{base_url}}/api/v1/notifications/2
+Content-Type: application/json
+
+{
+  "title": "Security Alert (updated)",
+  "priority": "critical"
+}
+
+### N-11 mark id 2 as read -> expect 200, is_read true
+PATCH {{base_url}}/api/v1/notifications/2/read
+
+### N-12 change status of id 2 -> expect 200
+PATCH {{base_url}}/api/v1/notifications/2/status
+Content-Type: application/json
+
+{
+  "status": "delivered"
+}
+
+### N-13 bulk mark read -> expect 200
+PATCH {{base_url}}/api/v1/notifications/bulk/read
+Content-Type: application/json
+
+{
+  "notification_ids": [2],
+  "is_read": true,
+  "status": "read"
+}
+
+### N-14 update id that doesn't exist -> expect 404
+PUT {{base_url}}/api/v1/notifications/999999
+Content-Type: application/json
+
+{
+  "title": "Ghost"
+}
+
+### N-15 delete id 2 -> expect 200
+DELETE {{base_url}}/api/v1/notifications/2
+
+### N-16 delete id 2 again -> expect 404
+DELETE {{base_url}}/api/v1/notifications/2
+
+### SETUP for N-17: create a notification (send twice, note both ids)
+POST {{base_url}}/api/v1/notifications/
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "title": "Bulk delete test",
+  "message": "Temporary",
+  "channel": "sms",
+  "priority": "low"
+}
+
+### N-17 bulk delete -> expect 200 (replace 3, 4 with the ids from SETUP)
+DELETE {{base_url}}/api/v1/notifications/bulk
+Content-Type: application/json
+
+{
+  "notification_ids": [3, 4]
+}
+### ===== PREFERENCES =====
+# If P-01 returns 409 on the first try, user 1 already has preferences
+# from earlier testing. Change pref_user to 10 and start again.
+@pref_user = 1
+
+### P-01 create preferences -> expect 201
+POST {{base_url}}/api/v1/preferences/
+Content-Type: application/json
+
+{
+  "user_id": {{pref_user}},
+  "email_enabled": true,
+  "sms_enabled": false,
+  "push_enabled": true,
+  "quiet_hours_enabled": true,
+  "quiet_hours_start": "22:00",
+  "quiet_hours_end": "07:00",
+  "frequency": "realtime"
+}
+
+### P-02 create again for same user -> expect 409
+POST {{base_url}}/api/v1/preferences/
+Content-Type: application/json
+
+{
+  "user_id": {{pref_user}}
+}
+
+### P-03 get preferences -> expect 200
+GET {{base_url}}/api/v1/preferences/{{pref_user}}
+
+### P-04 get for user that doesn't exist -> expect 404
+GET {{base_url}}/api/v1/preferences/999999
+
+### P-05 update -> expect 200, only these fields change
+PUT {{base_url}}/api/v1/preferences/{{pref_user}}
+Content-Type: application/json
+
+{
+  "sms_enabled": true,
+  "receive_low_priority": false,
+  "digest_enabled": true,
+  "frequency": "daily"
+}
+
+### P-06 update for user that doesn't exist -> expect 404
+PUT {{base_url}}/api/v1/preferences/999999
+Content-Type: application/json
+
+{
+  "sms_enabled": true
+}
+
+### P-07 create with user_id 0 -> expect 422
+POST {{base_url}}/api/v1/preferences/
+Content-Type: application/json
+
+{
+  "user_id": 0
+}
+
+### P-08 invalid quiet hours -> SHOULD be 422 (see notes)
+PUT {{base_url}}/api/v1/preferences/{{pref_user}}
+Content-Type: application/json
+
+{
+  "quiet_hours_start": "25:99",
+  "frequency": "whenever"
+}
+
+### ===== ANALYTICS =====
+# After A-01, put the id it returns here and save.
+@analytics_id = 1
+
+### A-01 create record (August) -> expect 201
+POST {{base_url}}/api/v1/analytics
+Content-Type: application/json
+
+{
+  "tenant_id": "tenant_123",
+  "tenant_name": "Test Corp",
+  "resilience_score": 72.5,
+  "credit_balance": 800,
+  "credit_used": 200,
+  "total_users": 50,
+  "active_users": 40,
+  "total_visits": 1200,
+  "avg_session_duration": 15.5,
+  "response_time_avg": 120,
+  "uptime_percentage": 99.5,
+  "error_count": 3,
+  "metrics_json": {"phishing_tests": 4},
+  "report_month": "2026-08"
+}
+
+### A-01b create second record (September, higher score) -> expect 201
+POST {{base_url}}/api/v1/analytics
+Content-Type: application/json
+
+{
+  "tenant_id": "tenant_123",
+  "tenant_name": "Test Corp",
+  "resilience_score": 80,
+  "credit_balance": 600,
+  "credit_used": 400,
+  "total_users": 60,
+  "active_users": 45,
+  "total_visits": 1500,
+  "avg_session_duration": 17,
+  "response_time_avg": 110,
+  "uptime_percentage": 99.9,
+  "error_count": 1,
+  "report_month": "2026-09"
+}
+
+### A-02 invalid data (score as text) -> expect 422
+POST {{base_url}}/api/v1/analytics
+Content-Type: application/json
+
+{
+  "tenant_id": "tenant_123",
+  "tenant_name": "Test Corp",
+  "resilience_score": "very high",
+  "uptime_percentage": 99,
+  "report_month": "2026-09"
+}
+
+### A-03 list all -> expect 200
+GET {{base_url}}/api/v1/analytics
+
+### A-04 filtered list -> expect 200
+GET {{base_url}}/api/v1/analytics?skip=0&limit=10&tenant_id=tenant_123
+
+### A-05 get by id -> expect 200
+GET {{base_url}}/api/v1/analytics/{{analytics_id}}
+
+### A-06 get missing id -> expect 404
+GET {{base_url}}/api/v1/analytics/999999
+
+### A-07 latest record for tenant -> expect 200
+GET {{base_url}}/api/v1/analytics/tenant/tenant_123
+
+### A-08 dashboard -> expect 200
+GET {{base_url}}/api/v1/analytics/dashboard/tenant_123
+
+### A-09 credit flow -> expect 200
+GET {{base_url}}/api/v1/analytics/credit-flow/tenant_123
+
+### A-10 engagement -> expect 200
+GET {{base_url}}/api/v1/analytics/engagement/tenant_123
+
+### A-11 score -> expect 200
+GET {{base_url}}/api/v1/analytics/score/tenant_123
+
+### A-12 score trend -> expect 200, Increasing
+GET {{base_url}}/api/v1/analytics/score-trend/tenant_123
+
+### A-13 report -> expect 200
+GET {{base_url}}/api/v1/analytics/report/tenant_123
+
+### A-14 update -> expect 200
+PUT {{base_url}}/api/v1/analytics/{{analytics_id}}
+Content-Type: application/json
+
+{
+  "error_count": 10,
+  "tenant_name": "Test Corp Updated"
+}
+
+### A-16 score above 100 -> expect 422
+POST {{base_url}}/api/v1/analytics
+Content-Type: application/json
+
+{
+  "tenant_id": "tenant_123",
+  "tenant_name": "Test Corp",
+  "resilience_score": 150,
+  "uptime_percentage": 99,
+  "report_month": "2026-09"
+}
+
+### A-17 min_score greater than max_score -> expect 400
+GET {{base_url}}/api/v1/analytics?min_score=90&max_score=10
+
+### A-18 unknown tenant -> expect 404
+GET {{base_url}}/api/v1/analytics/dashboard/tenant_nobody
+
+### A-19 more active users than total users -> SHOULD be 422 (see notes)
+POST {{base_url}}/api/v1/analytics
+Content-Type: application/json
+
+{
+  "tenant_id": "tenant_bad",
+  "tenant_name": "Bad Data Inc",
+  "resilience_score": 50,
+  "total_users": 10,
+  "active_users": 25,
+  "credit_used": -100,
+  "uptime_percentage": 99,
+  "report_month": "not-a-month"
+}
+
+### A-15 delete (run LAST) -> expect 200
+DELETE {{base_url}}/api/v1/analytics/{{analytics_id}}
+
+### A-15b delete again -> expect 404
+DELETE {{base_url}}/api/v1/analytics/{{analytics_id}}
+
+### ===== INTEGRATION + SECURITY =====
+# Paste the 6 lines printed by make_test_tokens.py here (replacing these):
+@tok_valid = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidGVuYW50X2lkIjoidGVuYW50XzEyMyIsImV4cCI6MTc5MDMxOTQwMn0.WrWCC9lwFJhePH1UtZwlQSsy2IbS1lmDmtzepQ-FXv0
+@tok_wrong_secret = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidGVuYW50X2lkIjoidGVuYW50XzEyMyIsImV4cCI6MTc5MDMxOTQwMn0.d9AmVq6xzDHV5W07ixmYsSJFDTS9McZ1gPhs4fZwvCs
+@tok_expired = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidGVuYW50X2lkIjoidGVuYW50XzEyMyIsImV4cCI6MTc5MDIyOTQwMn0.F6QyomIdJDxOYo2Y6a3oCgAyHaJUTnVMhvkMdl5zClw
+@tok_other_tenant = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwidGVuYW50X2lkIjoidGVuYW50Xzk5OSIsImV4cCI6MTc5MDMxOTQwMn0.cZqTHcLGVg-Fkwg8lX0Nkz7LcNe7XSvGdjsvXfyxoBc
+@tok_no_exp = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidGVuYW50X2lkIjoidGVuYW50XzEyMyJ9.zjWxBRAfxD6p1ZgnP1fQwAEhHZ_98MD500gpPoLEYps
+@tok_no_tenant = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZW5hbnRfMTIzIiwiZXhwIjoxNzkwMzE5NDAyfQ.6FhxGJcuGwDkXjKrBlNbshZOxBX6rTUMoPT6nuA1ACU
+
+### I-01 cached score, valid token -> 404 (no score cached) or 500 (Redis not running)
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: Bearer {{tok_valid}}
+
+### I-02 flush, valid token -> 410 Gone (intended)
+POST {{base_url}}/api/v1/integration/analytics/flush/tenant_123
+Authorization: Bearer {{tok_valid}}
+
+### I-03 integration metrics -> 200
+GET {{base_url}}/api/v1/integration/metrics
+
+### S-01 no Authorization header -> 401 "Not authenticated"
+GET {{base_url}}/api/v1/integration/score/tenant_123
+
+### S-02 garbage token -> 401 "Invalid or expired token"
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: Bearer abc123
+
+### S-03 wrong secret -> 401
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: Bearer {{tok_wrong_secret}}
+
+### S-04 expired token -> 401
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: Bearer {{tok_expired}}
+
+### S-05 other tenant's token on tenant_123 -> 403 "Tenant scope mismatch"
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: Bearer {{tok_other_tenant}}
+
+### S-06 flush with other tenant's token -> 403
+POST {{base_url}}/api/v1/integration/analytics/flush/tenant_123
+Authorization: Bearer {{tok_other_tenant}}
+
+### S-07 valid token, right tenant -> NOT 401/403 (same as I-01)
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: Bearer {{tok_valid}}
+
+### S-08 token with no expiry -> SHOULD be 401 (see notes)
+POST {{base_url}}/api/v1/integration/analytics/flush/tenant_123
+Authorization: Bearer {{tok_no_exp}}
+
+### S-09 token with no tenant_id -> SHOULD be 401 (see notes)
+POST {{base_url}}/api/v1/integration/analytics/flush/tenant_123
+Authorization: Bearer {{tok_no_tenant}}
+
+### S-10 "Bearer" missing from header -> 401
+GET {{base_url}}/api/v1/integration/score/tenant_123
+Authorization: {{tok_valid}}
