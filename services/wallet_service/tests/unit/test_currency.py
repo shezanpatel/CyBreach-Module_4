@@ -1,4 +1,4 @@
- 
+﻿ 
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
@@ -177,3 +177,4 @@ def test_negative_amount_is_rejected(
         )
 
     mock_get_latest_currency_rate.assert_not_called()
+

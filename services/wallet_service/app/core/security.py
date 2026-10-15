@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from secrets import compare_digest
 from typing import Any
 
@@ -207,3 +207,4 @@ def verify_service_api_key(request: Request) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Valid service API key is required",
         )
+

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+﻿from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi.testclient import TestClient
@@ -231,3 +231,4 @@ def test_swagger_and_openapi_remain_public():
 
     assert docs.status_code == 200
     assert openapi.status_code == 200
+

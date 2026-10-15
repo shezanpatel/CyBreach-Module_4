@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 from decimal import Decimal
 
 import pytest
@@ -323,7 +323,7 @@ def test_credit_idempotency():
 
 
 # ============================================================
-# CREDIT IDEMPOTENCY — DIFFERENT AMOUNT
+# CREDIT IDEMPOTENCY - DIFFERENT AMOUNT
 # ============================================================
 
 def test_credit_idempotency_rejects_different_amount():
@@ -367,7 +367,7 @@ def test_credit_idempotency_rejects_different_amount():
 
 
 # ============================================================
-# CREDIT IDEMPOTENCY — DIFFERENT CURRENCY
+# CREDIT IDEMPOTENCY - DIFFERENT CURRENCY
 # ============================================================
 
 def test_credit_idempotency_rejects_different_currency():
@@ -411,7 +411,7 @@ def test_credit_idempotency_rejects_different_currency():
 
 
 # ============================================================
-# CREDIT IDEMPOTENCY — DIFFERENT REFERENCE
+# CREDIT IDEMPOTENCY - DIFFERENT REFERENCE
 # ============================================================
 
 def test_credit_idempotency_rejects_different_reference():

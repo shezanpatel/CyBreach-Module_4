@@ -1,4 +1,4 @@
-# Wallet Service
+﻿# Wallet Service
 
 A production-style Digital Wallet Microservice built with FastAPI, PostgreSQL, Kafka and Docker.
 

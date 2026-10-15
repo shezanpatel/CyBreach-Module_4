@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+﻿from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -112,3 +112,4 @@ def test_refresh_failure_is_isolated(mock_session_local):
 
     db.rollback.assert_called_once()
     db.close.assert_called_once()
+

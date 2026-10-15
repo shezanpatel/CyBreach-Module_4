@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+﻿from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -80,3 +80,4 @@ class BudgetAlert(Base):
             "is_enabled",
         ),
     )
+

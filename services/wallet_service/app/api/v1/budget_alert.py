@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -124,3 +124,4 @@ def evaluate_alert(
     except Exception:
         db.rollback()
         raise
+

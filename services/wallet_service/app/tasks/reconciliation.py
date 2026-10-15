@@ -1,4 +1,4 @@
- 
+﻿ 
 from decimal import Decimal
 
 from sqlalchemy import func
@@ -370,3 +370,4 @@ def reconcile_wallet(
         "difference": difference,
         "ledger_mode": "DOUBLE_ENTRY",
     }
+

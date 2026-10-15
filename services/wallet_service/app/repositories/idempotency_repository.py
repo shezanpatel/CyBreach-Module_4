@@ -1,4 +1,4 @@
-import hashlib
+﻿import hashlib
 import json
 
 from sqlalchemy.dialects.postgresql import insert

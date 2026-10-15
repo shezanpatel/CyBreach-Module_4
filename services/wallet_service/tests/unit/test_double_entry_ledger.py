@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from uuid import uuid4
 
 from app.models.wallet_ledger import WalletLedger

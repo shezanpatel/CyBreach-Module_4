@@ -1,4 +1,4 @@
- 
+﻿ 
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -90,3 +90,4 @@ def get_conversion_rate(
         )
 
     return currency_rate.rate
+

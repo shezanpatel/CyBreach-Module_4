@@ -1,4 +1,4 @@
-from uuid import uuid4
+﻿from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
@@ -241,3 +241,4 @@ def test_subscription_downgrade_affects_future_renewal():
     assert response.status_code == 200
 
     assert _get_balance(user_id) == 250.0
+

@@ -1,4 +1,4 @@
-class WalletNotFound(Exception):
+﻿class WalletNotFound(Exception):
     """Raised when a requested wallet cannot be found."""
     pass
 

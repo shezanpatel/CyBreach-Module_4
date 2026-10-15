@@ -1,6 +1,6 @@
-# Wallet Service PostgreSQL Disaster Recovery Runbook
+﻿# Wallet Service PostgreSQL Disaster Recovery Runbook
 
-## CyBreach Arena — Module 4 — Pod Alpha
+## CyBreach Arena - Module 4 - Pod Alpha
 
 **Component:** Wallet Service  
 **Database:** PostgreSQL 16  
@@ -370,3 +370,4 @@ Isolated recovery: PASS
 Live database preserved: PASS
 
 Disaster-recovery procedure: VALIDATED
+

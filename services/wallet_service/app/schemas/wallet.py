@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -77,3 +77,4 @@ class WalletAuditHistoryResponse(BaseModel):
     limit: int
     offset: int
     entries: list[WalletAuditEntryResponse]
+

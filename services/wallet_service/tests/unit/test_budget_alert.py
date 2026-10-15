@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -275,3 +275,4 @@ def test_check_budget_alert_does_not_notify_disabled_alert(
     assert result["notification_sent"] is False
 
     mock_publish_event.assert_not_called()
+

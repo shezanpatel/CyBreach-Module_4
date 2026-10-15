@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from app.services.wallet_service import deposit_money

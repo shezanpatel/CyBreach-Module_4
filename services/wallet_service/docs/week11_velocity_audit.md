@@ -1,6 +1,6 @@
-# Week 11 Velocity Audit — Pod Alpha Wallet Service
+﻿# Week 11 Velocity Audit - Pod Alpha Wallet Service
 
-## CyBreach Arena — Module 4
+## CyBreach Arena - Module 4
 
 **Pod:** Alpha  
 **Component:** Wallet Service  
@@ -518,7 +518,7 @@ semantics.
 Further optimisation must not weaken those guarantees merely to improve
 benchmark results.
 
-### Priority 1 — Database Request Profiling
+### Priority 1 - Database Request Profiling
 
 Measure per-endpoint SQL execution time and connection-acquisition time
 under controlled load.
@@ -535,7 +535,7 @@ Identify whether high-concurrency latency is dominated by:
 
 ---
 
-### Priority 2 — Mutation Transaction Reduction
+### Priority 2 - Mutation Transaction Reduction
 
 Review deposit and withdrawal request paths for database work occurring
 after the core financial transaction commits.
@@ -545,7 +545,7 @@ without weakening financial correctness or event guarantees.
 
 ---
 
-### Priority 3 — Budget Alert Cost
+### Priority 3 - Budget Alert Cost
 
 Budget-alert evaluation currently participates in balance-changing
 request processing.
@@ -561,7 +561,7 @@ Optimisation must preserve Week 10 budget-alert behaviour.
 
 ---
 
-### Priority 4 — Kafka Latency
+### Priority 4 - Kafka Latency
 
 Measure Kafka publication latency independently from database latency.
 
@@ -573,7 +573,7 @@ such as a transactional outbox before synchronous guarantees are removed.
 
 ---
 
-### Priority 5 — Database Capacity
+### Priority 5 - Database Capacity
 
 Evaluate database connection capacity against application worker
 concurrency.
@@ -583,7 +583,7 @@ excessive PostgreSQL connections can reduce overall performance.
 
 ---
 
-### Priority 6 — Controlled Retesting
+### Priority 6 - Controlled Retesting
 
 Performance changes should be validated progressively:
 
@@ -648,7 +648,7 @@ PASS
 
 Regression suite:
 
-PASS — 99 tests
+PASS - 99 tests
 
 Idempotency:
 
@@ -676,8 +676,9 @@ EXECUTED
 
 High-concurrency 200 ms latency criterion:
 
-OPEN — PERFORMANCE RECOVERY PLAN REQUIRED
+OPEN - PERFORMANCE RECOVERY PLAN REQUIRED
 
 Week 11 is therefore documented with the high-concurrency performance gap
 explicitly recorded rather than incorrectly reporting the stress test as
 passing.
+

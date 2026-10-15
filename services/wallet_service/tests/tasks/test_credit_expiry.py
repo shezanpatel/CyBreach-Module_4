@@ -1,4 +1,4 @@
- 
+﻿ 
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
@@ -229,3 +229,4 @@ def test_credit_expiry_database_flow():
 
     finally:
         db.close()
+

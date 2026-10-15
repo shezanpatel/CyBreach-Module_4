@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+﻿from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -384,3 +384,4 @@ def test_get_subscription_returns_latest_subscription():
     service.repository.get_by_user_id.assert_called_once_with(
         "test_user"
     )
+

@@ -1,8 +1,8 @@
-# CyBreach Arena — Wallet Service Security Report
+﻿# CyBreach Arena - Wallet Service Security Report
 
-## Week 13 — Performance, Security Audit, and Final QA
+## Week 13 - Performance, Security Audit, and Final QA
 
-**Component:** Module 4 — Arena / Pod Alpha Wallet Service  
+**Component:** Module 4 - Arena / Pod Alpha Wallet Service  
 **Service:** CyBreach Wallet Service  
 **Version:** 1.0.0  
 **Audit Period:** Week 13  
@@ -300,8 +300,8 @@ The database enforces:
 
 During the Week 13 DR drill, the test transaction contained:
 
-- DEBIT — WALLET — 25.00
-- CREDIT — MODULE_USAGE — 25.00
+- DEBIT - WALLET - 25.00
+- CREDIT - MODULE_USAGE - 25.00
 
 Calculated transaction net:
 
@@ -309,8 +309,8 @@ Calculated transaction net:
 
 After replica promotion, another transaction was successfully created:
 
-- DEBIT — WALLET — 10.00
-- CREDIT — MODULE_USAGE — 10.00
+- DEBIT - WALLET - 10.00
+- CREDIT - MODULE_USAGE - 10.00
 
 Calculated transaction net:
 
@@ -454,8 +454,8 @@ The transaction remained present:
 
 Both accounting entries remained present:
 
-- CREDIT — MODULE_USAGE — 25.00
-- DEBIT — WALLET — 25.00
+- CREDIT - MODULE_USAGE - 25.00
+- DEBIT - WALLET - 25.00
 
 No confirmed-replayed ledger entry used as DR evidence was lost during the simulated failure.
 
@@ -694,3 +694,4 @@ The disaster-recovery drill successfully simulated PostgreSQL primary failure an
 The final automated regression suite completed with 119 passing tests and zero failures.
 
 **Week 13 Pod Alpha Wallet Security Audit and Final QA: COMPLETE.**
+

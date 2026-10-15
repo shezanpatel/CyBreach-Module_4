@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from datetime import UTC, datetime
 from app.core.database import SessionLocal
 from app.repositories.currency_repository import get_latest_currency_rate
@@ -104,3 +104,4 @@ def refresh_configured_currency_rates():
 
     finally:
         db.close()
+

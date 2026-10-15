@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -173,3 +173,4 @@ def test_wallet_ledger_entry_is_append_only():
 
     finally:
         db.close()
+

@@ -1,4 +1,4 @@
- 
+﻿ 
 from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
@@ -168,3 +168,4 @@ def test_scheduler_job_configuration():
         scheduler.remove_job(
             "wallet_reconciliation"
         )
+

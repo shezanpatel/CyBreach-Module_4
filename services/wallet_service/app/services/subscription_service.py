@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+﻿from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -308,3 +308,4 @@ class SubscriptionService:
         subscription_id: UUID,
     ) -> Subscription | None:
         return self.repository.get_by_id(subscription_id)
+

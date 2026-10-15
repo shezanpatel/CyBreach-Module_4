@@ -1,4 +1,4 @@
-import threading
+﻿import threading
 import uuid
 
 from locust import HttpUser, between, events, task

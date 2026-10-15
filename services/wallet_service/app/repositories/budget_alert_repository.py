@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -93,3 +93,4 @@ def delete_budget_alert(
 ) -> None:
     db.delete(alert)
     db.flush()
+

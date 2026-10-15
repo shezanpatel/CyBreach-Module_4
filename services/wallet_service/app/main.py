@@ -1,4 +1,4 @@
-import json
+﻿import json
 from contextlib import asynccontextmanager
 from secrets import compare_digest
 
@@ -332,3 +332,4 @@ def health_check():
         "version": settings.APP_VERSION,
         "status": "running",
     }
+

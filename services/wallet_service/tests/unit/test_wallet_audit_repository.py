@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -301,3 +301,4 @@ def test_audit_query_combines_all_filters():
 
     query.offset.assert_called_once_with(40)
     query.limit.assert_called_once_with(20)
+

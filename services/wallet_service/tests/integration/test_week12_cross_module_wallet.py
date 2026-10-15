@@ -1,4 +1,4 @@
-from uuid import uuid4
+﻿from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
@@ -283,3 +283,4 @@ def test_cross_module_insufficient_balance_does_not_debit():
 
     assert response.status_code == 400
     assert get_balance(user_id) == "50.00"
+

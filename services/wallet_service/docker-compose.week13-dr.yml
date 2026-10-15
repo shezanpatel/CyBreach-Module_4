@@ -1,4 +1,4 @@
-services:
+﻿services:
   week13-primary:
     image: postgres:16
     container_name: wallet-week13-primary
@@ -52,3 +52,4 @@ services:
 volumes:
   week13_primary_data:
   week13_replica_data:
+
