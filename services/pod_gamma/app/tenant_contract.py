@@ -105,3 +105,7 @@ def improvement_size_key(size: str) -> str:
 
 def tenant_members_key(tenant_id: str) -> str:
     return f"lb:tenant:{validate_tenant_id(tenant_id)}:members"
+
+
+def tenant_metadata_key(tenant_id: str) -> str:
+    return f"lb:tenant:{validate_tenant_id(tenant_id)}:metadata"

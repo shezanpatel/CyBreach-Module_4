@@ -107,6 +107,21 @@ async def get_benchmark_aggregate(
     return None
 
 
+async def get_available_benchmark_cohorts(min_peer_count: int):
+    """Return only cohort dimensions with enough peers for a comparison."""
+    return [
+        {
+            "industry": record["industry"],
+            "region": record["region"],
+            "size_band": record["size_band"],
+            "peer_count": record["peer_count"],
+        }
+        for record in BENCHMARK_DATA
+        if record["industry"] != "ALL"
+        and record["peer_count"] >= min_peer_count
+    ]
+
+
 async def get_global_benchmark():
     """
     Return the global benchmark aggregate used by PG-25.

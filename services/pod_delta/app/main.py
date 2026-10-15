@@ -20,6 +20,10 @@ from app.api.preference_routes import router as preference_router
 from app.api.analytics_engine_routes import router as analytics_router
 from app.api.integration_routes import router as integration_router
 from app.api.websocket_routes import router as websocket_router
+from app.api.arena_gateway_routes import (
+    auth_router as auth_router,
+    router as arena_gateway_router,
+)
 from app.services.integration.metrics import metrics_output
 from app.integration.runtime import start_integration, stop_integration
 
@@ -101,6 +105,8 @@ app.include_router(
 app.include_router(analytics_router)
 app.include_router(integration_router)
 app.include_router(websocket_router)
+app.include_router(auth_router)
+app.include_router(arena_gateway_router)
 
 
 @app.get("/", summary="Root Health Check")
@@ -126,4 +132,3 @@ async def health_check():
 @app.get("/metrics", summary="Prometheus metrics")
 async def prometheus_root() -> Response:
     return Response(content=metrics_output(), media_type="text/plain")
-

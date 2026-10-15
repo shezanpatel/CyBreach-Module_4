@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { apiRequest } from "./api";
 
 function CyBreachArena() {
 /* ============================================================
@@ -156,16 +157,34 @@ const globalCSS = `
      multi-column layouts force a horizontal overflow.
   ============================================================ */
   @media (max-width: 960px) {
+    .cba-nav { padding: 10px 18px !important; }
+    .cba-nav-inner { width: 100% !important; flex-wrap: wrap; gap: 8px; }
+    .cba-nav-brand { font-size: 16px !important; white-space: nowrap; }
     .cba-nav-tabs {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      order: 3; flex: 0 0 100%; width: 100%;
+      justify-content: space-between; gap: 0 !important;
+      overflow: visible;
     }
-    .cba-nav-tabs::-webkit-scrollbar { display: none; }
+    .cba-nav-tabs button { padding: 7px 8px !important; font-size: 11px !important; letter-spacing: 0.03em !important; }
+    .cba-user-badge { gap: 8px !important; padding: 4px 8px !important; }
+    .cba-user-avatar { width: 32px !important; height: 32px !important; }
+    .cba-user-details div:nth-child(2) { display: none; }
+    .cba-sign-out { padding: 7px 8px !important; font-size: 11px !important; }
     .cba-hero-grid { grid-template-columns: 1fr 1fr !important; }
     .cba-agents-grid { grid-template-columns: 1fr 1fr !important; }
     .cba-two-col { grid-template-columns: 1fr !important; }
     .cba-shield { display: none !important; }
+  }
+  @media (min-width: 961px) and (max-width: 1200px) {
+    .cba-nav { padding: 10px 16px !important; }
+    .cba-nav-inner { width: 100% !important; gap: 8px; }
+    .cba-nav-brand { font-size: 15px !important; white-space: nowrap; }
+    .cba-nav-tabs { flex: 1; min-width: 0; justify-content: center; gap: 0 !important; }
+    .cba-nav-tabs button { padding: 6px 5px !important; font-size: 11px !important; letter-spacing: 0.02em !important; }
+    .cba-user-badge { gap: 7px !important; padding: 4px 6px !important; }
+    .cba-user-avatar { width: 32px !important; height: 32px !important; }
+    .cba-user-details div:nth-child(2) { display: none; }
+    .cba-sign-out { padding: 7px 8px !important; font-size: 11px !important; }
   }
   @media (max-width: 640px) {
     .cba-hero-grid { grid-template-columns: 1fr !important; }
@@ -173,7 +192,8 @@ const globalCSS = `
     .cba-container { padding: 20px 16px !important; }
     .cba-nav { padding: 12px 16px !important; }
     .cba-nav-inner { flex-direction: column; align-items: flex-start !important; gap: 12px; }
-    .cba-nav-tabs { width: 100%; }
+    .cba-nav-tabs { width: 100%; justify-content: flex-start; overflow-x: auto; }
+    .cba-nav-tabs button { flex: 0 0 auto; }
     .cba-plan-grid { grid-template-columns: 1fr 1fr !important; }
   }
 `;
@@ -209,13 +229,6 @@ const INITIAL_ACTIVITY = [
   { icon:"✦", type:"badge",  text:"Gold badge earned — 7-Day Streak",            time:"YESTERDAY"   },
   { icon:"▷", type:"scan",   text:"Vulnerability Scan completed — 3 findings",   time:"2 DAYS AGO"  },
   { icon:"⚠", type:"alert",  text:"Low balance alert — credits below 50",        time:"4 DAYS AGO"  },
-];
-
-const TOPUP_PLANS = [
-  { credits:50,  price:"₹149"  },
-  { credits:100, price:"₹279"  },
-  { credits:250, price:"₹599"  },
-  { credits:500, price:"₹1,099"},
 ];
 
 /* ============================================================
@@ -436,42 +449,34 @@ function DeltaBadge({ value }) {
   );
 }
 
-function RunButton({ onClick, disabled, loading }) {
+function RunButton({ onClick }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
-      className={disabled ? "" : "cba-btn"}
+      className="cba-btn"
       style={{
         width:"100%", marginTop:12, padding:"9px 0",
         background:"transparent",
-        border:`1px solid ${disabled ? "rgba(0,229,255,0.15)" : "rgba(0,229,255,0.35)"}`,
-        color: disabled ? T.muted : T.neon,
+        border:"1px solid rgba(0,229,255,0.35)",
+        color:T.neon,
         fontFamily:"'IBM Plex Mono',monospace", fontSize:11,
         letterSpacing:"0.1em", textTransform:"uppercase",
-        borderRadius:8, cursor: disabled ? "not-allowed" : "pointer",
+        borderRadius:8, cursor:"pointer",
         transition:"background 0.2s, border-color 0.2s",
       }}
-      onMouseEnter={e => { if (!disabled) e.target.style.background = "rgba(0,229,255,0.09)"; }}
+      onMouseEnter={e => { e.target.style.background = "rgba(0,229,255,0.09)"; }}
       onMouseLeave={e => { e.target.style.background = "transparent"; }}
     >
-      {loading ? "◉ Running..." : "▷ Run Agent"}
+      Run simulated scan
     </button>
   );
 }
 
-function AgentCard({ agent, credits, onRun }) {
-  const [running, setRunning] = useState(false);
+function AgentCard({ agent, onRun }) {
   const [hovered, setHovered] = useState(false);
 
   function handleRun() {
-    if (credits < agent.cost) {
-      onRun(agent, false);
-      return;
-    }
-    setRunning(true);
-    onRun(agent, true);
-    setTimeout(() => setRunning(false), 4000);
+    onRun(agent);
   }
 
   return (
@@ -480,15 +485,15 @@ function AgentCard({ agent, credits, onRun }) {
       onMouseLeave={() => setHovered(false)}
       style={{
       background: T.surface3,
-      border: `1px solid ${running ? "rgba(0,229,255,0.45)" : hovered ? T.neonDim : T.border}`,
+      border: `1px solid ${hovered ? T.neonDim : T.border}`,
       borderRadius:8, padding:20,
-      boxShadow: running ? "0 0 20px rgba(0,229,255,0.1)" : hovered ? "0 10px 28px rgba(0,0,0,0.35)" : "none",
-      transform: hovered && !running ? "translateY(-3px)" : "translateY(0)",
+      boxShadow: hovered ? "0 10px 28px rgba(0,0,0,0.35)" : "none",
+      transform: hovered ? "translateY(-3px)" : "translateY(0)",
       transition:"border-color 0.25s, box-shadow 0.25s, transform 0.25s",
       display:"flex", flexDirection:"column",
       animation:"fadeIn 0.35s ease",
     }}>
-      <div style={{ height:2, background: running ? T.neon : T.border, borderRadius:2, marginBottom:16, transition:"background 0.3s" }} />
+      <div style={{ height:2, background:T.border, borderRadius:2, marginBottom:16, transition:"background 0.3s" }} />
 
       <span style={{ fontSize:30, marginBottom:12 }}>{agent.icon}</span>
 
@@ -506,30 +511,15 @@ function AgentCard({ agent, credits, onRun }) {
         <span style={{
           fontFamily:"'IBM Plex Mono',monospace", fontSize:9,
           letterSpacing:"0.1em", padding:"3px 7px", borderRadius:2,
-          background: running ? "rgba(34,197,94,0.1)" : "rgba(0,229,255,0.07)",
-          color: running ? T.safe : T.neon,
-          border: `1px solid ${running ? "rgba(34,197,94,0.25)" : "rgba(0,229,255,0.2)"}`,
+          background:"rgba(0,229,255,0.07)",
+          color:T.neon,
+          border:"1px solid rgba(0,229,255,0.2)",
         }}>
-          {running ? "RUNNING" : "READY"}
+          DEMO
         </span>
       </div>
 
-      {running && (
-        <div style={{ marginTop:12 }}>
-          <div style={{ height:2, background:T.border, borderRadius:2, overflow:"hidden" }}>
-            <div style={{
-              height:"100%", background:T.neon, borderRadius:2,
-              boxShadow:`0 0 6px ${T.neon}`,
-              animation:"scanBar 3.8s ease-in-out forwards",
-            }} />
-          </div>
-          <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.neon, marginTop:5, letterSpacing:"0.06em" }}>
-            ▷ SCANNING...
-          </div>
-        </div>
-      )}
-
-      <RunButton onClick={handleRun} disabled={running} loading={running} />
+      <RunButton onClick={handleRun} />
     </div>
   );
 }
@@ -553,80 +543,347 @@ function ToastStack({ toasts }) {
   );
 }
 
-function TopUpModal({ open, onClose, onConfirm }) {
-  const [selected, setSelected] = useState(0);
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    "\"":"&quot;",
+    "'":"&#39;",
+  })[character]);
+}
+
+function buildHtmlDocument(title, content) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body{font:15px/1.5 Arial,sans-serif;color:#18212c;background:#f3f6f8;margin:0;padding:32px}
+    main{max-width:820px;margin:0 auto;background:#fff;padding:44px;border:1px solid #d8e0e7;border-radius:12px}
+    h1{font-size:26px;margin:6px 0 8px} h2{font-size:16px;margin:24px 0 8px}
+    .eyebrow{font:700 11px/1.4 Arial,sans-serif;letter-spacing:.12em;color:#087e8b}
+    .notice{padding:12px 14px;background:#fff8e8;border-left:3px solid #d58b00;margin:18px 0}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0}
+    .muted{color:#637181;font-size:12px}.right{text-align:right}
+    table{width:100%;border-collapse:collapse;margin:18px 0}
+    th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #d8e0e7}
+    th:last-child,td:last-child{text-align:right}
+    @media print{body{padding:0;background:#fff}main{border:0;border-radius:0;padding:0;max-width:none}}
+    @media(max-width:600px){body{padding:10px}main{padding:22px}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>${content}</main></body></html>`;
+}
+
+function downloadHtmlFile(filename, title, content) {
+  const html = buildHtmlDocument(title, content);
+  const blob = new Blob([html], { type:"text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function demoReceiptHtmlContent(receipt) {
+  const money = amount => `$${Number(amount).toFixed(2)}`;
+  const rows = receipt.line_items.map(item => `
+    <tr><td>${escapeHtml(item.description)}<div class="muted">${Number(item.credits).toLocaleString()} demo credits · quantity ${Number(item.quantity)}</div></td><td>${money(item.amount)}</td></tr>
+  `).join("");
+  const content = `
+    <div class="eyebrow">CYBREACH ARENA · LOCAL DEMO</div>
+    <h1>Payment receipt</h1>
+    <div class="notice"><strong>SIMULATED · NO MONEY CHARGED.</strong> This is proof of a demo transaction only, not a tax invoice or evidence of a real payment.</div>
+    <div class="grid">
+      <div><div class="muted">RECEIPT NUMBER</div><strong>${escapeHtml(receipt.receipt_number)}</strong><div class="muted">${escapeHtml(new Date(receipt.issued_at).toLocaleString())}</div></div>
+      <div><div class="muted">PAYMENT STATUS</div><strong>Approved (simulated)</strong><div class="muted">Reference: ${escapeHtml(receipt.payment.reference)}</div></div>
+      <div><div class="muted">BILLED TO</div><strong>${escapeHtml(receipt.customer.name)}</strong><div>${escapeHtml(receipt.customer.email)}</div><div>${escapeHtml(receipt.customer.billing_address).replace(/\r?\n/g, "<br>")}</div></div>
+      <div><div class="muted">PAYMENT METHOD</div><strong>${escapeHtml(receipt.payment.method_label)}</strong><div class="muted">Sandbox instrument; no real payment credentials used.</div></div>
+    </div>
+    <table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>
+    <table>
+      <tbody>
+        <tr><td>Subtotal</td><td>${money(receipt.subtotal)}</td></tr>
+        <tr><td>Tax <span class="muted">(not calculated in demo)</span></td><td>${money(receipt.tax)}</td></tr>
+        <tr><th>Total · ${escapeHtml(receipt.currency)}</th><th>${money(receipt.total)}</th></tr>
+      </tbody>
+    </table>
+    <div class="muted">Credits added: ${Number(receipt.credits_added).toLocaleString()} CR. ${escapeHtml(receipt.notice)}</div>`;
+  return content;
+}
+
+function downloadDemoReceipt(receipt) {
+  downloadHtmlFile(
+    `${receipt.receipt_number}.html`,
+    `Receipt ${receipt.receipt_number}`,
+    demoReceiptHtmlContent(receipt),
+  );
+}
+
+function printDemoReceipt(receipt) {
+  const printWindow = window.open("", "_blank", "popup,width=900,height=720");
+  if (!printWindow) {
+    downloadDemoReceipt(receipt);
+    return;
+  }
+
+  const html = buildHtmlDocument(
+    `Receipt ${receipt.receipt_number}`,
+    demoReceiptHtmlContent(receipt),
+  );
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.requestAnimationFrame(() => {
+    printWindow.requestAnimationFrame(() => {
+      printWindow.focus();
+      printWindow.print();
+    });
+  });
+}
+
+function demoReportData(engagement) {
+  return {
+    report_id:`REPORT-${engagement.id}`,
+    generated_at:new Date().toISOString(),
+    execution_source:"Pod Delta in-memory demo simulator",
+    pod_beta_execution_invoked:false,
+    demo_only:true,
+    run:engagement,
+  };
+}
+
+function downloadDemoReport(engagement) {
+  const report = demoReportData(engagement);
+  const rows = (engagement.results || []).map(item => `
+    <tr><td>${escapeHtml(item.title)}</td><td>${escapeHtml(item.severity).toUpperCase()}</td><td>SIMULATED</td></tr>
+  `).join("");
+  const content = `
+    <div class="eyebrow">CYBREACH ARENA · DEMO SECURITY REPORT</div>
+    <h1>${escapeHtml(engagement.campaign_title)}</h1>
+    <div class="notice"><strong>SIMULATED REPORT.</strong> Generated by the Pod Delta demo simulator. No targets were contacted, no security tests were executed, and Pod Beta's engagement runner was not invoked.</div>
+    <div class="grid">
+      <div><div class="muted">REPORT ID</div><strong>${escapeHtml(report.report_id)}</strong></div>
+      <div><div class="muted">RUN STATUS</div><strong>${escapeHtml(engagement.status)}</strong></div>
+      <div><div class="muted">CAMPAIGN</div><strong>${escapeHtml(engagement.campaign_title)}</strong><div class="muted">${escapeHtml(engagement.campaign_id)}</div></div>
+      <div><div class="muted">COMPLETED</div><strong>${escapeHtml(new Date(engagement.completed_at).toLocaleString())}</strong></div>
+    </div>
+    <p><strong>Credit cost:</strong> ${Number(engagement.credit_cost)} CR &nbsp; <strong>Sample findings:</strong> ${Number(engagement.finding_count)}</p>
+    <h2>Sample findings</h2>
+    <table><thead><tr><th>Finding</th><th>Severity</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="muted">${escapeHtml(engagement.notice)}</p>`;
+  downloadHtmlFile(`${report.report_id}.html`, `Security report ${engagement.campaign_title}`, content);
+}
+
+function downloadDemoReportJson(engagement) {
+  const report = demoReportData(engagement);
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type:"application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${report.report_id}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function createCheckoutId() {
+  return globalThis.crypto?.randomUUID?.()
+    || `demo-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function TopUpModal({ open, onClose, onPurchase, purchasing, receipt }) {
+  const [packageId, setPackageId] = useState("operator");
+  const [paymentMethod, setPaymentMethod] = useState("demo_card");
+  const [step, setStep] = useState("details");
+  const [checkoutId, setCheckoutId] = useState(createCheckoutId);
+  const [customer, setCustomer] = useState({
+    name:"Arena Demo Manager",
+    email:"manager@cybreach.demo",
+    billingAddress:"100 Demo Street, Example City",
+  });
+
+  useEffect(() => {
+    if (open) {
+      setStep(receipt ? "receipt" : "details");
+      if (!receipt) setCheckoutId(createCheckoutId());
+    }
+  }, [open, receipt]);
 
   if (!open) return null;
+  const packages = [
+    ["starter", "Starter", 250, 4.99],
+    ["operator", "Operator", 750, 9.99],
+    ["enterprise", "Enterprise", 2000, 19.99],
+  ];
+  const selectedPackage = packages.find(([id]) => id === packageId) || packages[1];
+  const inputStyle = {
+    width:"100%", boxSizing:"border-box", padding:"11px 12px",
+    background:T.bg, border:`1px solid ${T.border}`, color:T.text,
+    borderRadius:8, font:"inherit",
+  };
+  const labelStyle = { display:"grid", gap:7, color:T.muted, fontSize:12 };
+  const primaryButtonStyle = {
+    width:"100%", padding:13, background:T.neon, color:"#000",
+    fontFamily:"'IBM Plex Mono',monospace", fontSize:12, fontWeight:700,
+    letterSpacing:"0.08em", textTransform:"uppercase", border:"none",
+    borderRadius:8, cursor:purchasing ? "wait" : "pointer",
+    opacity:purchasing ? .7 : 1,
+  };
+  const money = value => `$${Number(value).toFixed(2)}`;
+
+  function close() {
+    if (!purchasing) onClose();
+  }
+
+  function startNewCheckout() {
+    setStep("details");
+    setCheckoutId(createCheckoutId());
+  }
 
   return (
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={event => { if (event.target === event.currentTarget) close(); }}
       style={{
-        position:"fixed", inset:0,
-        background:"rgba(0,0,0,0.82)",
-        backdropFilter:"blur(8px)",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        zIndex:200,
+        position:"fixed", inset:0, background:"rgba(0,0,0,0.82)",
+        backdropFilter:"blur(8px)", display:"flex", alignItems:"center",
+        justifyContent:"center", zIndex:200, padding:16,
       }}
     >
       <div style={{
-        background:T.surface,
-        border:"1px solid rgba(0,229,255,0.2)",
-        borderRadius:8, padding:32, width:"min(440px, 92vw)",
+        background:T.surface, border:"1px solid rgba(0,229,255,0.2)",
+        borderRadius:10, padding:28, width:"min(620px, 94vw)",
+        maxHeight:"92vh", overflowY:"auto",
         boxShadow:"0 0 60px rgba(0,0,0,0.8), 0 0 24px rgba(0,229,255,0.08)",
         position:"relative", animation:"fadeIn 0.25s ease",
       }}>
         <button
-          onClick={onClose}
+          onClick={close}
+          disabled={purchasing}
+          aria-label="Close checkout"
           style={{ position:"absolute", top:14, right:14, background:"none", border:"none", color:T.muted, fontSize:18, cursor:"pointer" }}
         >✕</button>
 
-        <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:18, fontWeight:700, color:T.neon, marginBottom:4 }}>
-          ◈ Purchase Credits
-        </div>
-        <div style={{ fontSize:13, color:T.muted, marginBottom:22 }}>
-          Credits are added within 1–2 hours after UPI confirmation.
-        </div>
-
-        <div className="cba-plan-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:18 }}>
-          {TOPUP_PLANS.map((plan, i) => (
-            <div
-              key={i}
-              onClick={() => setSelected(i)}
-              style={{
-                border:`1px solid ${selected===i ? T.neon : T.border}`,
-                background: selected===i ? "rgba(0,229,255,0.06)" : "transparent",
-                borderRadius:8, padding:"14px 8px", textAlign:"center",
-                cursor:"pointer", transition:"all 0.15s",
-              }}
-            >
-              <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:20, fontWeight:700, color:T.neon }}>
-                {plan.credits}
-              </div>
-              <div style={{ fontSize:10, color:T.muted, marginTop:3 }}>credits</div>
-              <div style={{ fontSize:12, color:T.text, marginTop:6, fontWeight:600 }}>{plan.price}</div>
+        {step !== "receipt" ? (
+          <>
+            <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:18, fontWeight:700, color:T.neon, marginBottom:5 }}>
+              ◈ Purchase credits
             </div>
-          ))}
-        </div>
-
-        <div style={{ fontSize:11, color:T.muted, padding:"10px 12px", background:T.surface2, borderLeft:`2px solid ${T.neon}`, marginBottom:18, lineHeight:1.5 }}>
-          ⓘ This simulates UPI payment. In production, clicking below opens your UPI app.
-          Credits post automatically when the transaction confirms.
-        </div>
-
-        <button
-          onClick={() => { onConfirm(TOPUP_PLANS[selected].credits); onClose(); }}
-          className="cba-btn"
-          style={{
-            width:"100%", padding:13,
-            background:T.neon, color:"#000",
-            fontFamily:"'IBM Plex Mono',monospace", fontSize:12,
-            fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase",
-            border:"none", borderRadius:8, cursor:"pointer",
-          }}
-        >
-          Confirm & Pay via UPI
-        </button>
+            <div style={{ color:T.muted, fontSize:13, marginBottom:18 }}>
+              Complete the billing details and review your simulated payment.
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:22 }}>
+              {["1 · BILLING", "2 · PAYMENT", "3 · RECEIPT"].map((label, index) => {
+                const active = (step === "details" && index === 0) || (step === "payment" && index === 1);
+                return <div key={label} style={{ padding:"9px 5px", textAlign:"center", borderBottom:`2px solid ${active ? T.neon : T.border}`, color:active ? T.neon : T.muted, fontSize:10, letterSpacing:"0.04em" }}>{label}</div>;
+              })}
+            </div>
+            {step === "details" ? (
+              <form onSubmit={event => { event.preventDefault(); setStep("payment"); }}>
+                <div style={{ display:"grid", gap:14, marginBottom:18 }}>
+                  <label style={labelStyle}>
+                    Full name
+                    <input autoComplete="name" required minLength={2} maxLength={120} value={customer.name} onChange={event => setCustomer({ ...customer, name:event.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={labelStyle}>
+                    Billing email
+                    <input type="email" autoComplete="email" required maxLength={254} value={customer.email} onChange={event => setCustomer({ ...customer, email:event.target.value })} style={inputStyle} />
+                  </label>
+                  <label style={labelStyle}>
+                    Billing address
+                    <textarea autoComplete="street-address" required minLength={5} maxLength={300} rows={2} value={customer.billingAddress} onChange={event => setCustomer({ ...customer, billingAddress:event.target.value })} style={{ ...inputStyle, resize:"vertical" }} />
+                  </label>
+                </div>
+                <div style={{ color:T.muted, fontSize:11, marginBottom:16 }}>Receipt details are held only in this local demo session.</div>
+                <button type="submit" className="cba-btn" style={primaryButtonStyle}>Continue to payment →</button>
+              </form>
+            ) : (
+              <>
+                <div style={{ padding:14, border:`1px solid ${T.border}`, borderRadius:8, marginBottom:16 }}>
+                  <div style={{ color:T.muted, fontSize:10, letterSpacing:"0.08em", marginBottom:8 }}>ORDER SUMMARY</div>
+                  <div style={{ display:"grid", gap:8, marginBottom:14 }}>
+                    {packages.map(([id, label, credits, price]) => (
+                      <button key={id} type="button" onClick={() => setPackageId(id)} aria-pressed={packageId === id} style={{
+                        display:"flex", justifyContent:"space-between", padding:11, textAlign:"left",
+                        color:T.text, background:packageId === id ? "rgba(0,229,255,.10)" : "transparent",
+                        border:`1px solid ${packageId === id ? T.neon : T.border}`, borderRadius:8, cursor:"pointer",
+                      }}>
+                        <span>{label} · {credits.toLocaleString()} CR</span><strong>{money(price)}</strong>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", color:T.muted, fontSize:12 }}><span>Tax</span><span>$0.00 · not calculated in demo</span></div>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginTop:9, paddingTop:9, borderTop:`1px solid ${T.border}` }}><strong>Total</strong><strong style={{ color:T.neon }}>{money(selectedPackage[3])} DEMO</strong></div>
+                </div>
+                <div style={{ display:"grid", gap:9, marginBottom:16 }}>
+                  <div style={{ color:T.muted, fontSize:11, letterSpacing:"0.08em" }}>SIMULATED PAYMENT INSTRUMENT</div>
+                  {[
+                    ["demo_card", "Demo card · ending 4242", "Sandbox instrument · no card number or CVV collected"],
+                    ["demo_upi", "Demo UPI · demo@arena.test", "Sandbox UPI alias · no bank credentials requested"],
+                  ].map(([method, title, subtitle]) => (
+                    <label key={method} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:12, border:`1px solid ${paymentMethod === method ? T.neon : T.border}`, borderRadius:8, cursor:"pointer" }}>
+                      <input type="radio" name="demo-payment-method" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} />
+                      <span><strong style={{ display:"block", color:T.text, fontSize:12 }}>{title}</strong><small style={{ color:T.muted }}>{subtitle}</small></span>
+                    </label>
+                  ))}
+                </div>
+                <div style={{ padding:12, color:T.warning, background:"rgba(245,158,11,.08)", borderLeft:`2px solid ${T.warning}`, marginBottom:16, fontSize:11, lineHeight:1.55 }}>
+                  DEMO ONLY — these sandbox instruments always approve. No real payment is made, and no card or bank details are collected.
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 2fr", gap:10 }}>
+                  <button type="button" disabled={purchasing} onClick={() => setStep("details")} className="cba-btn" style={{ ...primaryButtonStyle, background:"transparent", color:T.muted, border:`1px solid ${T.border}` }}>← Billing details</button>
+                  <button type="button" disabled={purchasing} onClick={() => onPurchase(packageId, paymentMethod, customer, checkoutId)} className="cba-btn" style={primaryButtonStyle}>
+                    {purchasing ? "PROCESSING SIMULATED PAYMENT…" : `Pay ${money(selectedPackage[3])} · add ${selectedPackage[2].toLocaleString()} CR`}
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        ) : receipt ? (
+          <>
+            <div style={{ color:T.text }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16, paddingBottom:18, borderBottom:`1px solid ${T.border}` }}>
+                <div>
+                  <div style={{ color:T.neon, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, letterSpacing:"0.12em" }}>CYBREACH ARENA · DEMO</div>
+                  <h2 style={{ margin:"8px 0 4px", fontSize:23 }}>Payment receipt</h2>
+                  <div style={{ color:T.warning, fontSize:11, fontWeight:700 }}>SIMULATED · NO MONEY CHARGED</div>
+                </div>
+                <div style={{ textAlign:"right", fontSize:11, color:T.muted }}>
+                  <div>Receipt</div><strong style={{ color:T.text }}>{receipt.receipt_number}</strong>
+                  <div style={{ marginTop:7 }}>{new Date(receipt.issued_at).toLocaleString()}</div>
+                </div>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18, padding:"18px 0" }}>
+                <div><div style={{ color:T.muted, fontSize:10, marginBottom:6 }}>BILLED TO</div><strong>{receipt.customer.name}</strong><div style={{ marginTop:4 }}>{receipt.customer.email}</div><div style={{ whiteSpace:"pre-line", marginTop:4 }}>{receipt.customer.billing_address}</div></div>
+                <div><div style={{ color:T.muted, fontSize:10, marginBottom:6 }}>PAYMENT METHOD</div><strong>{receipt.payment.method_label}</strong><div style={{ marginTop:5, color:T.muted, fontSize:11 }}>Reference: {receipt.payment.reference}</div><div style={{ marginTop:5, color:T.muted, fontSize:11 }}>Status: Approved (simulated)</div></div>
+              </div>
+              <div style={{ borderTop:`1px solid ${T.border}`, borderBottom:`1px solid ${T.border}`, padding:"14px 0" }}>
+                {receipt.line_items.map(item => <div key={item.description} style={{ display:"flex", justifyContent:"space-between", gap:12 }}><div><strong>{item.description}</strong><div style={{ color:T.muted, fontSize:11, marginTop:4 }}>{item.credits.toLocaleString()} demo credits · quantity {item.quantity}</div></div><strong>{money(item.amount)}</strong></div>)}
+              </div>
+              <div style={{ display:"grid", gap:7, maxWidth:280, margin:"14px 0 0 auto", fontSize:12 }}>
+                <div style={{ display:"flex", justifyContent:"space-between" }}><span>Subtotal</span><span>{money(receipt.subtotal)}</span></div>
+                <div style={{ display:"flex", justifyContent:"space-between", color:T.muted }}><span>Tax</span><span>{money(receipt.tax)} · not calculated</span></div>
+                <div style={{ display:"flex", justifyContent:"space-between", paddingTop:8, borderTop:`1px solid ${T.border}`, fontSize:15 }}><strong>Total · USD</strong><strong>{money(receipt.total)}</strong></div>
+              </div>
+              <div style={{ marginTop:20, padding:12, border:`1px solid ${T.border}`, borderRadius:8, fontSize:11, lineHeight:1.6 }}>
+                <strong>Demo proof of transaction.</strong> {receipt.notice} This receipt confirms a simulated purchase only and is not a tax invoice or proof of a real-world charge.
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginTop:18 }}>
+                <button type="button" onClick={() => downloadDemoReceipt(receipt)} className="cba-btn" style={{ ...primaryButtonStyle, padding:"11px 8px", background:"transparent", color:T.neon, border:`1px solid ${T.neon}`, fontSize:10 }}>Download HTML receipt</button>
+                <button type="button" onClick={() => printDemoReceipt(receipt)} className="cba-btn" style={{ ...primaryButtonStyle, padding:"11px 8px", background:"transparent", color:T.neon, border:`1px solid ${T.neon}`, fontSize:10 }}>Print / Save PDF</button>
+                <button type="button" onClick={onClose} className="cba-btn" style={{ ...primaryButtonStyle, padding:"11px 8px", fontSize:10 }}>Done</button>
+              </div>
+              <button type="button" onClick={startNewCheckout} style={{ display:"block", margin:"14px auto 0", background:"none", border:0, color:T.muted, cursor:"pointer", fontSize:11 }}>Start another demo checkout</button>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
@@ -744,7 +1001,7 @@ function TransactionLog({ transactions }) {
               color: colors[tx.type]
             }}
           >
-            {tx.type === "credit" ? "+" : "-"}{tx.amount} CR
+            {tx.type === "credit" ? "+" : "-"}{tx.amount} {tx.currency || "CR"}
           </div>
 
         </div>
@@ -1131,7 +1388,7 @@ function BadgesPanel({ badges }) {
                     letterSpacing: ".08em"
                   }}
                 >
-                  ● VERIFIED
+                  ● SAMPLE
                 </div>
 
               </div>
@@ -1322,28 +1579,22 @@ function ActivityFeed({ items }) {
 }
 
 function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [accountId, setAccountId] = useState("manager@cybreach.demo");
+  const [password, setPassword] = useState("ArenaDemo2026!");
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!email || !password) return setError("Enter email and password.");
     setError("");
-    onLogin(email);
-  };
-
-  const input = {
-    width: "100%",
-    padding: "13px 15px",
-    marginTop: 8,
-    background: "rgba(255,255,255,.03)",
-    border: `1px solid ${T.border}`,
-    borderRadius: 10,
-    color: T.text,
-    outline: "none",
-    fontFamily: "'IBM Plex Sans',sans-serif",
-    transition: ".3s"
+    setLoading(true);
+    try {
+      await onLogin(accountId, password);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -1455,32 +1706,10 @@ function LoginScreen({ onLogin }) {
             fontSize: 13
           }}
         >
-          Enterprise Security Operations Platform
+          Local-only demo account · simulated activity
         </div>
 
         <form onSubmit={submit}>
-
-          <Eyebrow>Email</Eyebrow>
-
-          <input
-            type="email"
-            value={email}
-            style={input}
-            placeholder="you@company.com"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <div style={{ marginTop: 18 }}>
-            <Eyebrow>Password</Eyebrow>
-
-            <input
-              type="password"
-              value={password}
-              style={input}
-              placeholder="••••••••"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
 
           {error && (
             <div
@@ -1494,39 +1723,67 @@ function LoginScreen({ onLogin }) {
             </div>
           )}
 
+          <label style={{ display:"grid", gap:7, marginTop:18, color:T.muted, fontSize:12 }}>
+            Demo account ID
+            <input
+              autoComplete="username"
+              value={accountId}
+              onChange={event => setAccountId(event.target.value)}
+              style={{ padding:12, border:`1px solid ${T.border}`, borderRadius:8, background:T.bg, color:T.text }}
+            />
+          </label>
+          <label style={{ display:"grid", gap:7, marginTop:14, color:T.muted, fontSize:12 }}>
+            Demo password
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              style={{ padding:12, border:`1px solid ${T.border}`, borderRadius:8, background:T.bg, color:T.text }}
+            />
+          </label>
+
           <button
+            type="submit"
+            disabled={loading}
             className="cba-btn"
             style={{
               width: "100%",
-              marginTop: 28,
+              marginTop: 20,
               padding: 14,
               border: 0,
               borderRadius: 10,
-              cursor: "pointer",
-              background:
-                "linear-gradient(90deg,#00e5ff,#00b7d4)",
-              color: "#001318",
-              fontWeight: 700,
-              letterSpacing: ".15em",
-              fontFamily: "'IBM Plex Mono',monospace",
-              boxShadow: "0 0 25px rgba(0,229,255,.35)"
+              cursor: loading ? "wait" : "pointer",
+              opacity: loading ? 0.75 : 1,
+              background:"linear-gradient(90deg,#00e5ff,#00b7d4)",
+              color:"#001318",
+              fontWeight:700,
+              letterSpacing:".12em",
+              fontFamily:"'IBM Plex Mono',monospace",
+              boxShadow:"0 0 25px rgba(0,229,255,.25)"
             }}
           >
-            LOGIN
+            {loading ? "SIGNING IN..." : "SIGN IN TO DEMO ARENA"}
           </button>
 
         </form>
 
         <div
           style={{
-            marginTop: 24,
-            textAlign: "center",
-            color: "#22c55e",
-            fontSize: 11,
-            fontFamily: "'IBM Plex Mono',monospace"
+            marginTop:18,
+            padding:12,
+            border:"1px solid rgba(0,229,255,.15)",
+            borderRadius:8,
+            color:T.muted,
+            fontSize:11,
+            lineHeight:1.7,
+            fontFamily:"'IBM Plex Mono',monospace"
           }}
         >
-          ● SECURE CONNECTION ESTABLISHED
+          DEMO CREDENTIALS<br />
+          ID: <strong style={{ color:T.neon }}>manager@cybreach.demo</strong><br />
+          Password: <strong style={{ color:T.neon }}>ArenaDemo2026!</strong><br />
+          Local demo only · no real account or payment
         </div>
 
       </div>
@@ -1534,8 +1791,357 @@ function LoginScreen({ onLogin }) {
     </div>
   );
 }
-function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
-  const tabs = ["Dashboard","Agents","Leaderboard","Reports","Transactions"];
+function CampaignLibrary({ campaigns, error }) {
+  if (error) {
+    return <Panel><SectionHeader title="Campaign Library" /><p style={{ color:T.warn }}>{error}</p></Panel>;
+  }
+  if (!campaigns?.length) {
+    return <Panel><SectionHeader title="Campaign Library" /><p style={{ color:T.muted }}>No campaigns returned by Pod Beta.</p></Panel>;
+  }
+  return (
+    <Panel>
+      <SectionHeader title="Campaign Library" action={`${campaigns.length} FROM POD BETA`} />
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:12 }}>
+        {campaigns.map(campaign => (
+          <div key={campaign.campaign_id} style={{ padding:16, border:`1px solid ${T.border}`, borderRadius:10, background:"rgba(255,255,255,.02)" }}>
+            <div style={{ color:T.neon, font:"11px 'IBM Plex Mono',monospace", textTransform:"uppercase" }}>{campaign.tier}</div>
+            <h3 style={{ marginTop:8, fontSize:16 }}>{campaign.title}</h3>
+            <p style={{ marginTop:8, color:T.muted, lineHeight:1.5 }}>{campaign.description}</p>
+            <div style={{ marginTop:12, color:T.text, font:"12px 'IBM Plex Mono',monospace" }}>
+              {campaign.credit_cost} credits · {(campaign.regions || []).join(", ")}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function BenchmarkPanel({ token }) {
+  const [cohorts, setCohorts] = useState([]);
+  const [minimumPeerCount, setMinimumPeerCount] = useState(null);
+  const [cohort, setCohort] = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [cohortsLoading, setCohortsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setCohortsLoading(true);
+    setError("");
+    apiRequest("/api/v1/arena/benchmark/cohorts", { token })
+      .then(response => {
+        if (!active) return;
+        setCohorts(response.cohorts || []);
+        setMinimumPeerCount(response.minimum_peer_count);
+        setCohort(current => (
+          current && response.cohorts?.some(item =>
+            item.industry === current.industry
+            && item.region === current.region
+            && item.size_band === current.size_band
+          )
+            ? current
+            : response.cohorts?.[0] || null
+        ));
+      })
+      .catch(requestError => {
+        if (active) setError(`Could not load supported peer cohorts: ${requestError.message}`);
+      })
+      .finally(() => {
+        if (active) setCohortsLoading(false);
+      });
+    return () => { active = false; };
+  }, [token]);
+
+  async function compare(event) {
+    event.preventDefault();
+    if (!cohort) return;
+    setError("");
+    setLoading(true);
+    try {
+      setResult(await apiRequest("/api/v1/arena/benchmark", {
+        token, method:"POST", body:cohort,
+      }));
+    } catch (requestError) {
+      setResult(null);
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const industries = [...new Set(cohorts.map(item => item.industry))];
+  const regions = [...new Set(cohorts.filter(item => item.industry === cohort?.industry).map(item => item.region))];
+  const sizeBands = [...new Set(cohorts.filter(item => item.industry === cohort?.industry && item.region === cohort?.region).map(item => item.size_band))];
+
+  function updateCohort(field, value) {
+    setResult(null);
+    setError("");
+    if (field === "industry") {
+      const matching = cohorts.filter(item => item.industry === value);
+      if (matching.length) setCohort({ industry:value, region:matching[0].region, size_band:matching[0].size_band });
+      return;
+    }
+    if (field === "region") {
+      const matching = cohorts.filter(item => item.industry === cohort?.industry && item.region === value);
+      if (matching.length) setCohort({ ...cohort, region:value, size_band:matching[0].size_band });
+      return;
+    }
+    const matching = cohorts.find(item => item.industry === cohort?.industry && item.region === cohort?.region && item.size_band === value);
+    if (matching) setCohort({ ...cohort, size_band:value });
+  }
+
+  const fieldStyle = { padding:10, background:T.bg, border:`1px solid ${T.border}`, color:T.text, borderRadius:8 };
+  return (
+    <Panel>
+      <SectionHeader title="Synthetic Benchmark" action="POD GAMMA" />
+      <p style={{ color:T.muted, marginBottom:16 }}>Choose a seeded synthetic cohort from Pod Gamma. These demo figures are not based on real organizations or private peer data.</p>
+      <form onSubmit={compare} style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:18 }}>
+        {[
+          ["industry", industries],
+          ["region", regions],
+          ["size_band", sizeBands],
+        ].map(([key, values]) => (
+          <label key={key} style={{ display:"grid", gap:5, color:T.muted, fontSize:11, textTransform:"uppercase" }}>
+            {key.replace("_"," ")}
+            <select
+              value={cohort?.[key] || ""}
+              onChange={event => updateCohort(key, event.target.value)}
+              disabled={cohortsLoading || values.length === 0}
+              style={fieldStyle}
+            >
+              {values.map(value => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+        ))}
+        <button className="cba-btn" type="submit" disabled={loading || cohortsLoading || !cohort} style={{ alignSelf:"end", padding:"10px 16px", background:T.neon, border:0, borderRadius:8, color:"#001318", fontWeight:700, cursor:"pointer", opacity:loading || cohortsLoading || !cohort ? .65 : 1 }}>
+          {cohortsLoading ? "Loading cohorts…" : loading ? "Comparing…" : "Compare cohort"}
+        </button>
+      </form>
+      {!cohortsLoading && cohorts.length > 0 && (
+        <p style={{ color:T.muted, fontSize:11, marginBottom:12 }}>
+          {cohorts.length} seeded cohorts · minimum {minimumPeerCount} peers · synthetic demo data only
+        </p>
+      )}
+      {error && <p role="alert" style={{ color:T.warn }}>{error}</p>}
+      {!cohortsLoading && !error && cohorts.length === 0 && <p role="status" style={{ color:T.muted }}>Pod Gamma returned no cohorts that meet the minimum peer threshold.</p>}
+      {result && (
+        <div style={{ padding:14, border:`1px solid ${T.border}`, borderRadius:8 }}>
+          {result.label && <div style={{ color:T.warn, font:"11px 'IBM Plex Mono',monospace", textTransform:"uppercase" }}>{result.label}</div>}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:24, marginTop:10 }}>
+            <span>Peer group: <strong>{result.peer_count}</strong></span>
+            <span>Median: <strong>{result.peer_median}</strong></span>
+            <span>25th–75th: <strong>{result.peer_25th}–{result.peer_75th}</strong></span>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function ConnectionsPanel({ connections, loading, refresh }) {
+  return (
+    <Panel>
+      <SectionHeader title="Pod Connectivity" action={loading ? "CHECKING…" : "REFRESH"} onAction={refresh} />
+      <p style={{ color:T.muted, marginBottom:14 }}>Browser requests are routed through Pod Delta. Service URLs and credentials are not exposed to the browser.</p>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:10 }}>
+        {(connections ? [connections.pod_delta, ...connections.upstreams] : []).map(item => (
+          <div key={item.service} style={{ display:"flex", justifyContent:"space-between", padding:12, border:`1px solid ${T.border}`, borderRadius:8 }}>
+            <span>{item.service.replaceAll("_"," ")}</span>
+            <strong style={{ color:item.status === "healthy" ? T.safe : T.warn }}>{item.status}</strong>
+          </div>
+        ))}
+      </div>
+      {connections?.mode === "development_demo" && (
+        <p style={{ marginTop:14, color:T.warn, fontSize:12 }}>Development-only identity. Do not use this mode in production.</p>
+      )}
+      {!connections && !loading && <p style={{ color:T.warn }}>No connection status received yet.</p>}
+    </Panel>
+  );
+}
+
+function RecommendationsPanel({ data, error }) {
+  if (error) return <Panel><SectionHeader title="Engagement Recommendations" /><p style={{ color:T.warn }}>{error}</p></Panel>;
+  if (!data) return <Panel><SectionHeader title="Engagement Recommendations" /><p style={{ color:T.muted }}>No recommendation response received from Pod Beta.</p></Panel>;
+  return (
+    <Panel style={{ marginTop:16 }}>
+      <SectionHeader title="Engagement Recommendations" action="POD BETA" />
+      <p style={{ color:T.muted, marginBottom:12 }}>{data.unresolved_gap_count} unresolved validated gaps</p>
+      {data.guidance_notice && <p style={{ color:T.muted, fontSize:12, marginBottom:12 }}>{data.guidance_notice}</p>}
+      {(data.recommendations || []).map((item, index) => (
+        <div key={`${item.campaign_id}-${index}`} style={{ padding:"12px 0", borderTop:`1px solid ${T.border}` }}>
+          <strong>{item.title}</strong>
+          <div style={{ marginTop:5, color:T.muted, fontSize:12 }}>{item.reason} · {item.credit_cost} credits</div>
+        </div>
+      ))}
+    </Panel>
+  );
+}
+
+function NotificationsPanel({ notifications, preferences, error, demoMode }) {
+  if (error) return <Panel><SectionHeader title="Notifications" /><p style={{ color:T.warn }}>{error}</p></Panel>;
+  const items = notifications?.notifications || [];
+  return (
+    <Panel>
+      <SectionHeader title="Arena Notifications" action={demoMode ? "SIMULATED DEMO EVENTS" : `${notifications?.total ?? 0} EVENTS`} />
+      {demoMode && (
+        <p style={{ color:T.warning, marginBottom:12 }}>
+          Demo events are generated by simulated top-ups and scans. No email or external notification is sent.
+        </p>
+      )}
+      {preferences && (
+        <p style={{ color:T.muted, fontSize:12, marginBottom:12 }}>
+          Preferences · email {preferences.email_enabled ? "on" : "off"} · in-app {preferences.in_app_enabled ? "on" : "off"} · frequency {preferences.frequency}
+        </p>
+      )}
+      {items.map(item => (
+        <div key={item.id} style={{ padding:"12px 0", borderTop:`1px solid ${T.border}` }}>
+          <strong>{item.title}</strong>
+          <div style={{ color:T.muted, marginTop:5 }}>{item.message}</div>
+          <div style={{ color:T.muted, marginTop:5, fontSize:11 }}>{item.channel} · {item.status} · {item.created_at}</div>
+        </div>
+      ))}
+      {!items.length && <p style={{ color:T.muted }}>No notifications have been generated yet.</p>}
+    </Panel>
+  );
+}
+
+function AnalyticsPanel({ data, error }) {
+  if (error) return <Panel><SectionHeader title="Tenant Analytics" /><p style={{ color:T.warn }}>{error}</p></Panel>;
+  if (!data) return <Panel><SectionHeader title="Tenant Analytics" /><p style={{ color:T.muted }}>No analytics response received from Pod Delta.</p></Panel>;
+  const fields = [
+    ["Resilience score", data.resilience_score],
+    ["Active users", `${data.active_users}/${data.total_users}`],
+    ["Visits", data.total_visits],
+    ["Uptime", `${data.uptime_percentage}%`],
+    ["Errors", data.error_count],
+  ];
+  return (
+    <Panel>
+      <SectionHeader title={`Tenant Analytics · ${data.tenant_name}`} action={data.source === "simulated_demo" ? "SIMULATED DEMO DATA" : "POD DELTA"} />
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12 }}>
+        {fields.map(([label, value]) => (
+          <div key={label} style={{ padding:14, border:`1px solid ${T.border}`, borderRadius:8 }}>
+            <div style={{ color:T.muted, fontSize:11 }}>{label}</div>
+            <strong style={{ display:"block", marginTop:8, fontSize:20 }}>{value}</strong>
+          </div>
+        ))}
+      </div>
+      {data.source === "simulated_demo" && (
+        <p style={{ color:T.warning, fontSize:11, marginTop:14 }}>
+          These metrics are generated for the demo account and are not production analytics.
+        </p>
+      )}
+    </Panel>
+  );
+}
+
+function DashboardOverview({ connections, campaigns, leaderboard, leaderboardConnected, demoIdentity, walletData, analytics, onNavigate }) {
+  const services = connections
+    ? [connections.pod_delta, ...connections.upstreams]
+    : [];
+  const healthyServices = services.filter(service => service.status === "healthy").length;
+  const cards = [
+    {
+      label:"Connected services",
+      value:services.length ? `${healthyServices}/${services.length}` : "Checking",
+      detail:"Pod Delta gateway health",
+      color:healthyServices === services.length && services.length ? T.safe : T.warning,
+    },
+    {
+      label:"Campaign catalog",
+      value:campaigns.length,
+      detail:"Definitions from Pod Beta",
+      color:T.neon,
+    },
+    {
+      label:"Leaderboard",
+      value:leaderboardConnected ? leaderboard.length : "Unavailable",
+      detail:"Entries from Pod Gamma",
+      color:leaderboardConnected ? T.neon : T.warning,
+    },
+    {
+      label:demoIdentity ? "Demo wallet" : "Account data",
+      value:demoIdentity ? `${walletData?.available_balance ?? "…"} CR` : "Account session",
+      detail:demoIdentity ? `${analytics?.total_engagements ?? 0} simulated scans completed` : "Wallet and personal records",
+      color:T.muted,
+    },
+  ];
+
+  return (
+    <>
+      <Panel style={{ marginBottom:16, padding:24 }}>
+        <Eyebrow>{demoIdentity ? "Local demo account · all transactions are simulated" : "Authenticated account"}</Eyebrow>
+        <h2 style={{ fontFamily:T.fontDisplay, fontSize:28, margin:"8px 0" }}>
+          Welcome to your Arena dashboard
+        </h2>
+        <p style={{ color:T.muted, margin:0, lineHeight:1.6 }}>
+          Monitor connected pods, explore campaign and leaderboard data, and try a fully simulated wallet and scan workflow.
+          {demoIdentity && " Demo payments never charge money and scan simulations never contact targets."}
+        </p>
+      </Panel>
+
+      <div className="cba-hero-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:12, marginBottom:18 }}>
+        {cards.map(card => (
+          <Panel key={card.label}>
+            <Eyebrow>{card.label}</Eyebrow>
+            <strong style={{ display:"block", marginTop:10, color:card.color, font:"700 26px 'IBM Plex Mono',monospace" }}>
+              {card.value}
+            </strong>
+            <span style={{ display:"block", marginTop:6, color:T.muted, fontSize:12 }}>{card.detail}</span>
+          </Panel>
+        ))}
+      </div>
+
+      <div className="cba-two-col" style={{ display:"grid", gridTemplateColumns:"1.15fr .85fr", gap:14 }}>
+        <Panel>
+          <SectionHeader title="Service status" action="View details" onAction={() => onNavigate("Services")} />
+          {services.map(service => (
+            <div key={service.service} style={{ display:"flex", justifyContent:"space-between", gap:12, padding:"11px 0", borderTop:`1px solid ${T.border}` }}>
+              <span style={{ color:T.text }}>{service.service.replaceAll("_"," ")}</span>
+              <strong style={{ color:service.status === "healthy" ? T.safe : T.warning, textTransform:"uppercase", fontSize:11 }}>
+                {service.status}
+              </strong>
+            </div>
+          ))}
+          {!services.length && <p style={{ color:T.muted }}>Checking connected services...</p>}
+        </Panel>
+
+        <Panel>
+          <SectionHeader title="Explore the Arena" />
+          <div style={{ display:"grid", gap:9 }}>
+            {[
+              ["Campaigns","Browse Pod Beta campaign definitions"],
+              ["Leaderboard","View Pod Gamma rankings"],
+              ["Benchmark","Compare a seeded synthetic cohort"],
+            ].map(([tab, description]) => (
+              <button
+                key={tab}
+                onClick={() => onNavigate(tab)}
+                style={{ display:"flex", justifyContent:"space-between", gap:12, alignItems:"center", textAlign:"left", padding:12, color:T.text, background:"rgba(255,255,255,.03)", border:`1px solid ${T.border}`, borderRadius:8, cursor:"pointer" }}
+              >
+                <span>
+                  <strong style={{ display:"block" }}>{tab}</strong>
+                  <small style={{ color:T.muted }}>{description}</small>
+                </span>
+                <span style={{ color:T.neon }}>→</span>
+              </button>
+            ))}
+          </div>
+          {demoIdentity && (
+            <p style={{ color:T.muted, fontSize:12, lineHeight:1.6, margin:"14px 0 0" }}>
+              Wallet, scan findings, notifications, and analytics here are sample data for this demo account only.
+            </p>
+          )}
+        </Panel>
+      </div>
+    </>
+  );
+}
+
+function Nav({ activeTab, setActiveTab, demoIdentity, onLogout }) {
+  const tabs = ["Dashboard","Campaigns","Leaderboard","Benchmark","Wallet","Notifications","Analytics","Services"];
   return (
     <nav className="cba-nav" style={{
       display:"flex", alignItems:"center", justifyContent:"center",
@@ -1546,7 +2152,7 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
       position:"sticky", top:0, zIndex:100,
     }}>
       <div className="cba-nav-inner" style={{ width:"98%", maxWidth:1600, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-      <div style={{ fontFamily:T.fontDisplay, fontSize:19, fontWeight:700, color:T.neon, letterSpacing:"0.04em", display:"flex", alignItems:"center", gap:8 }}>
+      <div className="cba-nav-brand" style={{ fontFamily:T.fontDisplay, fontSize:19, fontWeight:700, color:T.neon, letterSpacing:"0.04em", display:"flex", alignItems:"center", gap:8 }}>
         <span style={{ animation:"pulse 2s ease-in-out infinite", display:"inline-block" }}>◈</span>
         CYBREACH ARENA
       </div>
@@ -1555,6 +2161,7 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
         {tabs.map(t => (
           <button
             key={t}
+            className="cba-nav-tab"
             onClick={() => setActiveTab(t)}
             style={{
               background:"none", border:"none",
@@ -1573,26 +2180,8 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
       </div>
 
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <button
-          onClick={onTopUp}
-          className="cba-btn"
-          style={{
-            display:"flex", alignItems:"center", gap:8,
-            background:T.surface2, border:`1px solid ${T.border}`,
-            borderRadius:8, padding:"7px 14px",
-            fontFamily:"'IBM Plex Mono',monospace", fontSize:12,
-            color:T.text, cursor:"pointer",
-            transition:"border-color 0.2s",
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor=T.neon}
-          onMouseLeave={e => e.currentTarget.style.borderColor=T.border}
-        >
-          <span style={{ width:6, height:6, borderRadius:"50%", background:T.neon, boxShadow:`0 0 8px ${T.neon}`, display:"inline-block" }} />
-          {credits} CR
-          <span style={{ color:T.muted, fontSize:11 }}>＋ Top Up</span>
-        </button>
-
         <div
+  className="cba-user-badge"
   style={{
     display: "flex",
     alignItems: "center",
@@ -1601,12 +2190,12 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
     border: `1px solid ${T.border}`,
     borderRadius: 10,
     background: "rgba(255,255,255,0.03)",
-    cursor: "pointer",
     transition: "all .2s ease",
   }}
 >
   {/* Avatar */}
   <div
+    className="cba-user-avatar"
     style={{
       width: 38,
       height: 38,
@@ -1621,11 +2210,11 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
       boxShadow: `0 0 15px ${T.neon}55`,
     }}
   >
-    RK
+    LD
   </div>
 
   {/* User Details */}
-  <div style={{ lineHeight: 1.2 }}>
+  <div className="cba-user-details" style={{ lineHeight: 1.2 }}>
     <div
       style={{
         color: T.text,
@@ -1633,7 +2222,7 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
         fontWeight: 600,
       }}
     >
-      Kylie Moss
+      {demoIdentity ? "Local Demo" : "Authenticated User"}
     </div>
 
     <div
@@ -1643,31 +2232,39 @@ function Nav({ credits, onTopUp, activeTab, setActiveTab }) {
         fontFamily: "'IBM Plex Mono', monospace",
       }}
     >
-      UID: CBA-10241
+      {demoIdentity ? "DEVELOPMENT SESSION" : "ACCOUNT SESSION"}
     </div>
   </div>
 </div>
+      <button
+        className="cba-sign-out"
+        onClick={onLogout}
+        aria-label="Sign out"
+        style={{ padding:"8px 10px", color:T.text, background:"transparent", border:`1px solid ${T.border}`, borderRadius:7, cursor:"pointer", fontSize:12 }}
+      >
+        Sign out
+      </button>
       </div>
       </div>
     </nav>
   );
 }
 
-function HeroRow({ score, credits, agentCount, onTopUp }) {
+function HeroRow({ score, credits, agentCount, onTopUp, scoreLive = false }) {
   const animatedScore = useAnimatedNumber(score, 1100);
 
   return (
     <div className="cba-hero-grid" style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr", gap:14, marginBottom:22 }}>
       <Panel style={{ position:"relative", overflow:"hidden", padding:28 }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:T.border }} />
-        <Eyebrow>Resilience Score</Eyebrow>
+        <Eyebrow>{scoreLive ? "Resilience Score · Pod Delta" : "Sample Resilience Score"}</Eyebrow>
         <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:68, fontWeight:700, color:T.neon, lineHeight:1, letterSpacing:"-0.04em", animation:"countUp 0.5s ease" }}>
           {animatedScore}
         </div>
         <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.25)", color:T.safe, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, padding:"3px 9px", borderRadius:2, marginTop:10 }}>
-          ▲ +4 pts this week
+          {scoreLive ? "Live value · trend unavailable" : "Sample change · +4 pts"}
         </div>
-        <div style={{ marginTop:16, fontSize:12, color:T.muted }}>Top 23% in your industry</div>
+        <div style={{ marginTop:16, fontSize:12, color:T.muted }}>{scoreLive ? "Live score received from Pod Delta" : "Sample value · no score event received"}</div>
         <div style={{ marginTop:12, height:3, background:T.border, borderRadius:2, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${score}%`, background:T.neon, borderRadius:2, transition:"width 1.2s ease" }} />
         </div>
@@ -1675,12 +2272,12 @@ function HeroRow({ score, credits, agentCount, onTopUp }) {
 
       <Panel>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:T.border }} />
-        <Eyebrow>Credit Balance</Eyebrow>
+        <Eyebrow>Sample Credit Balance</Eyebrow>
         <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:44, fontWeight:700, lineHeight:1, marginBottom:4 }}>{credits}</div>
-        <div style={{ fontSize:12, color:T.muted, marginBottom:16 }}>credits available</div>
+        <div style={{ fontSize:12, color:T.muted, marginBottom:16 }}>demo credits · wallet is separate</div>
         <div style={{ fontSize:11, color:T.muted, lineHeight:1.7 }}>
-          Expiry in <strong style={{ color:T.warn }}>61 days</strong><br />
-          Last top-up: 3 days ago
+          Sample expiry: <strong style={{ color:T.warn }}>61 days</strong><br />
+          Sample top-up: 3 days ago
         </div>
         <button
           onClick={onTopUp}
@@ -1693,7 +2290,7 @@ function HeroRow({ score, credits, agentCount, onTopUp }) {
 
       <Panel>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:T.border }} />
-        <Eyebrow>Agents Run (30 days)</Eyebrow>
+        <Eyebrow>Sample Engagements (30 days)</Eyebrow>
         <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:38, fontWeight:700, lineHeight:1, marginBottom:4 }}>{agentCount}</div>
         <div style={{ fontSize:12, color:T.muted, marginBottom:16 }}>total executions</div>
         {[["Vuln Scan",6],["Malware",3],["Compliance",3]].map(([label,val]) => (
@@ -1715,65 +2312,278 @@ function HeroRow({ score, credits, agentCount, onTopUp }) {
   }, []);
 
   const [loggedIn, setLoggedIn]       = useState(false);
-  const [credits, setCredits]         = useState(245);
-  const [score, setScore]             = useState(74);
-  const [agentCount, setAgentCount]   = useState(12);
-  const [badges, setBadges]           = useState(INITIAL_BADGES);
-  const [activity, setActivity]       = useState(INITIAL_ACTIVITY);
   const [leaderboard, setLeaderboard] = useState(INITIAL_LEADERBOARD);
-  const [transactions, setTransactions] = useState([
-    { type:"credit", desc:"UPI top-up", amount:100, time:"2 HOURS AGO" },
-    { type:"debit",  desc:"Vulnerability Scan run", amount:5, time:"2 DAYS AGO" },
-    { type:"debit",  desc:"Compliance Audit run", amount:20, time:"4 DAYS AGO" },
-  ]);
-  const [modalOpen, setModalOpen]     = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [accessToken, setAccessToken] = useState("");
+  const [demoIdentity, setDemoIdentity] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpLoading, setTopUpLoading] = useState(false);
+  const [demoReceipts, setDemoReceipts] = useState([]);
+  const [demoEngagements, setDemoEngagements] = useState([]);
+  const [currentReceipt, setCurrentReceipt] = useState(null);
+  const [demoActionLoading, setDemoActionLoading] = useState(false);
+  const [lastEngagement, setLastEngagement] = useState(null);
+  const [connections, setConnections] = useState(null);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [apiErrors, setApiErrors] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignError, setCampaignError] = useState("");
+  const [recommendations, setRecommendations] = useState(null);
+  const [recommendationError, setRecommendationError] = useState("");
+  const [leaderboardConnected, setLeaderboardConnected] = useState(false);
+  const [leaderboardSource, setLeaderboardSource] = useState("SEEDED DEMO DATA");
+  const [walletData, setWalletData] = useState(null);
+  const [walletError, setWalletError] = useState("");
+  const [walletHistoryLive, setWalletHistoryLive] = useState(false);
+  const [notifications, setNotifications] = useState(null);
+  const [preferences, setPreferences] = useState(null);
+  const [notificationError, setNotificationError] = useState("");
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsError, setAnalyticsError] = useState("");
   const [activeTab, setActiveTab]     = useState("Dashboard");
   const { toasts, add: toast }        = useToasts();
 
-  function handleAgentRun(agent, hasCredits) {
-    if (!hasCredits) {
-      toast(`⚠ Need ${agent.cost} CR to run ${agent.name}. Top up first.`, "info");
-      setModalOpen(true);
-      return;
+  function applyDemoState(state) {
+    setWalletData(state.wallet);
+    setWalletError("");
+    setTransactions((state.transactions.entries || []).map(entry => ({
+      type:entry.entry_type,
+      desc:entry.reference_id,
+      amount:Number(entry.amount),
+      currency:entry.currency || "CR",
+      time:entry.created_at ? new Date(entry.created_at).toLocaleString() : "RECENT",
+    })));
+    setDemoReceipts(state.receipts?.entries || []);
+    setDemoEngagements(state.engagements || []);
+    setLastEngagement(state.engagements?.[0] || null);
+    setWalletHistoryLive(true);
+    setNotifications(state.notifications);
+    setPreferences(state.preferences);
+    setNotificationError("");
+    setAnalytics(state.analytics);
+    setAnalyticsError("");
+  }
+
+  async function refreshConnections() {
+    setConnectionsLoading(true);
+    try {
+      setConnections(await apiRequest("/api/v1/arena/connections", { token:accessToken }));
+    } catch (error) {
+      toast(`Connection check failed: ${error.message}`, "info");
+    } finally {
+      setConnectionsLoading(false);
+    }
+  }
+
+  async function handleLogin(accountId, password) {
+    const session = await apiRequest("/api/v1/auth/demo", {
+      method:"POST",
+      body:{ account_id:accountId, password },
+    });
+    setAccessToken(session.access_token);
+    setDemoIdentity(session.mode === "development_demo");
+    setLoggedIn(true);
+    setActiveTab("Dashboard");
+    toast("Demo account signed in. Payments and runs are simulated.", "success");
+  }
+
+  async function handleDemoTopUp(packageId, paymentMethod, customer, checkoutId) {
+    setTopUpLoading(true);
+    try {
+      const result = await apiRequest("/api/v1/arena/demo/top-up", {
+        token:accessToken,
+        method:"POST",
+        body:{
+          package_id:packageId,
+          payment_method:paymentMethod,
+          checkout_id:checkoutId,
+          customer_name:customer.name,
+          customer_email:customer.email,
+          billing_address:customer.billingAddress,
+        },
+      });
+      applyDemoState(result.state);
+      setCurrentReceipt(result.receipt);
+      toast(result.payment.message, "success");
+    } catch (error) {
+      toast(`Demo top-up failed: ${error.message}`, "info");
+    } finally {
+      setTopUpLoading(false);
+    }
+  }
+
+  async function handleDemoReset() {
+    try {
+      const state = await apiRequest("/api/v1/arena/demo/reset", {
+        token:accessToken,
+        method:"POST",
+      });
+      applyDemoState(state);
+      setLastEngagement(null);
+      setCurrentReceipt(null);
+      toast("Demo wallet and activity reset to the starting state.", "success");
+    } catch (error) {
+      toast(`Could not reset demo account: ${error.message}`, "info");
+    }
+  }
+
+  function handleLogout() {
+    setLoggedIn(false);
+    setAccessToken("");
+    setDemoIdentity(false);
+    setTopUpOpen(false);
+    setLastEngagement(null);
+    setConnections(null);
+    setCampaigns([]);
+    setCampaignError("");
+    setRecommendations(null);
+    setRecommendationError("");
+    setLeaderboard(INITIAL_LEADERBOARD);
+    setLeaderboardConnected(false);
+    setLeaderboardSource("SEEDED DEMO DATA");
+    setWalletData(null);
+    setWalletError("");
+    setWalletHistoryLive(false);
+    setTransactions([]);
+    setNotifications(null);
+    setPreferences(null);
+    setNotificationError("");
+    setAnalytics(null);
+    setAnalyticsError("");
+    setApiErrors([]);
+    setActiveTab("Dashboard");
+  }
+
+  useEffect(() => {
+    if (!accessToken) return undefined;
+    let active = true;
+    setConnectionsLoading(true);
+    setApiErrors([]);
+
+    const load = async (path, onSuccess, label) => {
+      try {
+        const data = await apiRequest(path, { token:accessToken });
+        if (active) onSuccess(data);
+      } catch (error) {
+        if (active) {
+          if (error.status === 404 && (label === "analytics" || label === "resilience score")) {
+            if (label === "analytics") setAnalyticsError("No analytics record exists for this tenant yet.");
+            return;
+          }
+          setApiErrors(current => [...current, `${label}: ${error.message}`]);
+          if (label === "campaigns") setCampaignError(error.message);
+          if (label === "recommendations") setRecommendationError(error.message);
+          if (label === "wallet" || label === "wallet history") setWalletError(error.message);
+          if (label === "notifications" || label === "preferences") setNotificationError(error.message);
+          if (label === "analytics") setAnalyticsError(error.message);
+        }
+      }
+    };
+
+    const requests = [
+      load("/api/v1/arena/connections", setConnections, "connections"),
+      load("/api/v1/arena/campaigns", data => {
+        setCampaigns(Array.isArray(data) ? data : []);
+        setCampaignError("");
+      }, "campaigns"),
+      load("/api/v1/arena/engagement/recommendations", data => {
+        setRecommendations(data);
+        setRecommendationError("");
+      }, "recommendations"),
+      load("/api/v1/arena/leaderboard", data => {
+        const rows = Array.isArray(data) ? data : (data.entries || []);
+        setLeaderboard(rows.map((row, index) => ({
+          rank:row.rank || index + 1,
+          name:row.username || row.tenant_id || "Tenant",
+          score:Number(row.score ?? row.security_score ?? 0),
+          delta:row.delta_score ?? row.delta ?? 0,
+          isYou:row.username === "1",
+        })));
+        setLeaderboardConnected(true);
+        setLeaderboardSource(data.label || "POD GAMMA API · SOURCE UNCLASSIFIED — TREAT AS DEMO");
+      }, "leaderboard"),
+    ];
+
+    if (demoIdentity) {
+      requests.push(
+        load("/api/v1/arena/demo/state", applyDemoState, "demo account"),
+      );
+    } else {
+      requests.push(
+        load("/api/v1/arena/analytics/dashboard", data => {
+          setAnalytics(data);
+          setAnalyticsError("");
+        }, "analytics"),
+        load("/api/v1/arena/wallet/balance", data => {
+          setWalletData(data);
+          setWalletError("");
+        }, "wallet"),
+        load("/api/v1/arena/wallet/history", data => {
+          const entries = data.entries || [];
+          setWalletHistoryLive(true);
+          setTransactions(entries.map(entry => ({
+            type:entry.entry_type || entry.transaction_type || "debit",
+            desc:entry.reference_id || entry.module_source || "Wallet entry",
+            amount:Number(entry.amount),
+            currency:entry.currency || "CR",
+            time:entry.created_at ? new Date(entry.created_at).toLocaleString() : "RECENT",
+          })));
+        }, "wallet history"),
+        load("/api/v1/arena/notifications", data => {
+          setNotifications(data);
+          setNotificationError("");
+        }, "notifications"),
+        load("/api/v1/arena/preferences", data => {
+          setPreferences(data);
+          setNotificationError("");
+        }, "preferences"),
+      );
     }
 
-    setCredits(c => c - agent.cost);
-    setAgentCount(c => c + 1);
-    toast(`▷ ${agent.name} started — ${agent.cost} CR deducted`, "info");
-    setTransactions(t => [{ type:"debit", desc:`${agent.name} run`, amount:agent.cost, time:"JUST NOW" }, ...t]);
+    Promise.all(requests).finally(() => {
+      if (active) setConnectionsLoading(false);
+    });
 
-    setTimeout(() => {
-      setScore(s => Math.min(s + 2, 100));
-      setLeaderboard(lb => lb.map(row => row.isYou ? { ...row, score: Math.min(row.score+2, 100), delta: row.delta+1 } : row));
-      setActivity(a => [{ icon:"▷", type:"scan", text:`${agent.name} completed — results ready`, time:"JUST NOW" }, ...a]);
+    return () => { active = false; };
+  }, [accessToken, demoIdentity]);
 
-      if (agent.id === "threat") {
-        setBadges(b => b.map(badge => badge.id==="hunter" ? { ...badge, unlocked:true } : badge));
-        toast("✦ New badge earned: Threat Hunter (Platinum)!", "success");
-      } else {
-        toast(`✓ ${agent.name} complete — score updated`, "success");
-      }
-    }, 4000);
+  function handleAgentRun(agent) {
+    if (!demoIdentity || demoActionLoading) return;
+    setDemoActionLoading(true);
+    apiRequest("/api/v1/arena/demo/engagements", {
+      token:accessToken,
+      method:"POST",
+      body:{
+        campaign_id:agent.id,
+        campaign_title:agent.name,
+        credit_cost:agent.cost,
+      },
+    }).then(result => {
+      setLastEngagement(result.engagement);
+      applyDemoState(result.state);
+      toast(
+        `${agent.name} simulation completed with ${result.engagement.finding_count} sample findings. No scan ran.`,
+        "success",
+      );
+    }).catch(error => {
+      toast(`Demo scan could not run: ${error.message}`, "info");
+    }).finally(() => setDemoActionLoading(false));
   }
 
-  function handleTopUp(amount) {
-    toast(`◈ UPI initiated — ${amount} CR arriving shortly...`, "info");
-    setTimeout(() => {
-      setCredits(c => c + amount);
-      setTransactions(t => [{ type:"credit", desc:"UPI top-up", amount, time:"JUST NOW" }, ...t]);
-      setActivity(a => [{ icon:"◈", type:"credit", text:`+${amount} credits added via UPI`, time:"JUST NOW" }, ...a]);
-      toast(`✓ ${amount} credits added to your wallet`, "success");
-    }, 2000);
-  }
+  const allServicesHealthy = Boolean(
+    connections
+    && connections.pod_delta.status === "healthy"
+    && connections.upstreams.every(item => item.status === "healthy")
+  );
 
   if (!loggedIn) {
-    return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg }}>
       <ParticleField color={T.neon} density={80} />
-      <Nav credits={credits} onTopUp={() => setModalOpen(true)} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Nav activeTab={activeTab} setActiveTab={setActiveTab} demoIdentity={demoIdentity} onLogout={handleLogout} />
       <div className="cba-container" style={{ padding:"28px 12px", maxWidth:"1700px", margin:"0 auto", position:"relative" }}>
         <svg
           className="cba-shield"
@@ -1806,49 +2616,85 @@ function HeroRow({ score, credits, agentCount, onTopUp }) {
               {activeTab}
             </h1>
             <p style={{ color:T.muted, fontSize:14, marginTop:6 }}>
-              {activeTab === "Dashboard" && "Welcome back, Kylie . Your resilience score improved 4 points this week."}
-              {activeTab === "Agents"    && "Run a security agent to improve your resilience score."}
-              {activeTab === "Leaderboard" && "See how your organisation ranks globally."}
-              {activeTab === "Reports"   && "Download and share your engagement reports."}
-              {activeTab === "Transactions" && "Full history of every credit movement."}
+              {activeTab === "Dashboard" && "Your account overview, live service status, and connected Arena data."}
+              {activeTab === "Campaigns" && "Browse campaign definitions supplied by Pod Beta."}
+              {activeTab === "Leaderboard" && "Leaderboard entries are loaded from Pod Gamma when available."}
+              {activeTab === "Benchmark" && "Review seeded synthetic cohort baselines from Pod Gamma."}
+              {activeTab === "Wallet" && (demoIdentity ? "Try simulated top-ups, payment methods, and a working demo ledger." : "Read wallet balance and ledger history from the Wallet service.")}
+              {activeTab === "Notifications" && (demoIdentity ? "Sample events generated by demo payments and scan runs." : "Tenant-scoped notifications and preferences from Pod Delta.")}
+              {activeTab === "Analytics" && (demoIdentity ? "Sample account metrics that update after a simulated scan." : "Tenant-scoped dashboard metrics from Pod Delta.")}
+              {activeTab === "Services" && "Check upstream health and diagnose integrations."}
             </p>
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:6, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:T.safe, letterSpacing:"0.08em" }}>
-            <span style={{ width:6, height:6, borderRadius:"50%", background:T.safe, boxShadow:`0 0 6px ${T.safe}`, display:"inline-block", animation:"blink 1.4s ease-in-out infinite" }} />
-            ALL SYSTEMS LIVE
+          <div style={{ display:"flex", alignItems:"center", gap:6, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:allServicesHealthy ? T.safe : T.warn, letterSpacing:"0.08em" }}>
+            <span style={{ width:6, height:6, borderRadius:"50%", background:allServicesHealthy ? T.safe : T.warn, boxShadow:`0 0 6px ${allServicesHealthy ? T.safe : T.warn}`, display:"inline-block" }} />
+            {connections
+              ? `${connections.upstreams.filter(item => item.status === "healthy").length + (connections.pod_delta.status === "healthy" ? 1 : 0)}/${connections.upstreams.length + 1} SERVICES ONLINE`
+              : "CHECKING POD CONNECTIONS"}
           </div>
         </div>
 
         {activeTab === "Dashboard" && (
-          <>
-            <Reveal><HeroRow score={score} credits={credits} agentCount={agentCount} onTopUp={() => setModalOpen(true)} /></Reveal>
-            <Reveal delay={80}>
-              <div style={{ marginBottom:22 }}>
-                <SectionHeader title="Security Agents" action="View all" onAction={() => setActiveTab("Agents")} />
-                <div className="cba-agents-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
-                  {AGENTS.map(a => (
-                    <AgentCard key={a.id} agent={a} credits={credits} onRun={handleAgentRun} />
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={120}><BadgesPanel badges={badges} /></Reveal>
-            <Reveal delay={160}>
-              <div className="cba-two-col" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginTop:22 }}>
-                <LeaderboardPanel entries={leaderboard} />
-                <ActivityFeed items={activity} />
-              </div>
-            </Reveal>
-          </>
+          <Reveal>
+            <DashboardOverview
+              connections={connections}
+              campaigns={campaigns}
+              leaderboard={leaderboard}
+              leaderboardConnected={leaderboardConnected}
+              demoIdentity={demoIdentity}
+              walletData={walletData}
+              analytics={analytics}
+              onNavigate={setActiveTab}
+            />
+          </Reveal>
         )}
 
-        {activeTab === "Agents" && (
+        {activeTab === "Campaigns" && (
           <>
-            <Reveal><HeroRow score={score} credits={credits} agentCount={agentCount} onTopUp={() => setModalOpen(true)} /></Reveal>
+            <Reveal><CampaignLibrary campaigns={campaigns} error={campaignError} /></Reveal>
+            <Reveal delay={40}><RecommendationsPanel data={recommendations} error={recommendationError} /></Reveal>
             <Reveal delay={80}>
+              <div style={{ marginTop:18 }}>
+                <SectionHeader title="Simulated Security Runs" action="NO REAL TARGETS ACCESSED" />
+              </div>
+              {lastEngagement && (
+                <Panel style={{ marginBottom:14 }}>
+                  <SectionHeader title={`Run complete · ${lastEngagement.campaign_title}`} action={`${lastEngagement.finding_count} SAMPLE FINDINGS`} />
+                  <p style={{ color:T.warning, fontSize:12, marginBottom:12 }}>{lastEngagement.notice}</p>
+                  <button type="button" onClick={() => downloadDemoReport(lastEngagement)} className="cba-btn" style={{ marginBottom:12, padding:"8px 12px", background:"transparent", color:T.neon, border:`1px solid ${T.neon}`, borderRadius:8, cursor:"pointer" }}>Download this report</button>
+                  <div style={{ display:"grid", gap:8 }}>
+                    {lastEngagement.results.map(item => (
+                      <div key={item.id} style={{ display:"flex", justifyContent:"space-between", gap:12, padding:"9px 12px", border:`1px solid ${T.border}`, borderRadius:8 }}>
+                        <span>{item.title}</span>
+                        <strong style={{ color:item.severity === "high" ? T.danger : item.severity === "medium" ? T.warning : T.neon, textTransform:"uppercase" }}>{item.severity} · simulated</strong>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+              )}
+              {demoIdentity && demoEngagements.length > 0 && (
+                <Panel style={{ marginBottom:14 }}>
+                  <SectionHeader title="Simulation report history" action={`${demoEngagements.length} DOWNLOADABLE`} />
+                  <p style={{ color:T.muted, fontSize:11, marginBottom:12 }}>These sample reports are generated by Pod Delta's demo simulator. Pod Beta has not executed these runs.</p>
+                  <div style={{ display:"grid", gap:9 }}>
+                    {demoEngagements.map(engagement => (
+                      <div key={engagement.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap", padding:12, border:`1px solid ${T.border}`, borderRadius:8 }}>
+                        <div>
+                          <strong style={{ display:"block", fontSize:12 }}>{engagement.campaign_title}</strong>
+                          <span style={{ color:T.muted, fontSize:11 }}>{new Date(engagement.completed_at).toLocaleString()} · {engagement.finding_count} sample findings · {engagement.credit_cost} CR</span>
+                        </div>
+                        <div style={{ display:"flex", gap:8 }}>
+                          <button type="button" onClick={() => downloadDemoReport(engagement)} className="cba-btn" style={{ padding:"7px 10px", background:"transparent", color:T.neon, border:`1px solid ${T.neon}`, borderRadius:7, cursor:"pointer" }}>Download HTML</button>
+                          <button type="button" onClick={() => downloadDemoReportJson(engagement)} className="cba-btn" style={{ padding:"7px 10px", background:"transparent", color:T.muted, border:`1px solid ${T.border}`, borderRadius:7, cursor:"pointer" }}>Download JSON</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+              )}
               <div className="cba-agents-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
                 {AGENTS.map(a => (
-                  <AgentCard key={a.id} agent={a} credits={credits} onRun={handleAgentRun} />
+                  <AgentCard key={a.id} agent={a} onRun={handleAgentRun} />
                 ))}
               </div>
             </Reveal>
@@ -1856,36 +2702,92 @@ function HeroRow({ score, credits, agentCount, onTopUp }) {
         )}
 
         {activeTab === "Leaderboard" && (
-          <Reveal><LeaderboardPanel entries={leaderboard} /></Reveal>
-        )}
-
-        {activeTab === "Transactions" && (
-          <Reveal><TransactionLog transactions={transactions} /></Reveal>
-        )}
-
-        {activeTab === "Reports" && (
           <Reveal>
-            <Panel>
-              <SectionHeader title="Monthly Reports" />
-              {["June 2026","May 2026","April 2026"].map((month, i) => (
-                <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 0", borderBottom: i<2 ? `1px solid ${T.border}` : "none" }}>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:600 }}>{month} — Security Report</div>
-                    <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>Agents run, credits consumed, score trend, badge progress</div>
+            <p style={{ color:T.muted, fontSize:11, marginBottom:8 }}>{leaderboardConnected ? leaderboardSource : "SEEDED DEMO DATA · POD GAMMA UNAVAILABLE"}</p>
+            <LeaderboardPanel entries={leaderboard} />
+          </Reveal>
+        )}
+
+        {activeTab === "Benchmark" && (
+          <Reveal><BenchmarkPanel token={accessToken} /></Reveal>
+        )}
+
+        {activeTab === "Wallet" && (
+          <Reveal>
+            <Panel style={{ marginBottom:16 }}>
+              <SectionHeader
+                title={demoIdentity ? "Demo Wallet" : "Wallet Service"}
+                action={demoIdentity ? "SIMULATED LEDGER" : walletData ? "LIVE API" : "NOT CONNECTED"}
+              />
+              {walletData
+                ? <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+                    <p>Available balance: <strong>{walletData.available_balance} {walletData.currency}</strong></p>
+                    {demoIdentity && (
+                      <div style={{ display:"flex", gap:8 }}>
+                        <button className="cba-btn" onClick={() => setTopUpOpen(true)} style={{ padding:"9px 14px", background:T.neon, color:"#001318", border:0, borderRadius:8, fontWeight:700, cursor:"pointer" }}>＋ Demo top-up</button>
+                        <button className="cba-btn" onClick={handleDemoReset} style={{ padding:"9px 14px", background:"transparent", color:T.muted, border:`1px solid ${T.border}`, borderRadius:8, cursor:"pointer" }}>Reset demo</button>
+                      </div>
+                    )}
                   </div>
-                  <button className="cba-btn" style={{ padding:"7px 16px", background:"transparent", border:`1px solid rgba(0,229,255,0.3)`, color:T.neon, fontFamily:"'IBM Plex Mono',monospace", fontSize:11, borderRadius:8, cursor:"pointer", letterSpacing:"0.08em" }}
-                    onMouseEnter={e => e.currentTarget.style.background="rgba(0,229,255,0.08)"}
-                    onMouseLeave={e => e.currentTarget.style.background="transparent"}
-                  >↓ PDF</button>
-                </div>
-              ))}
+                : <p style={{ color:demoIdentity ? T.muted : T.warn }}>
+                    {walletError || "Wallet response not available."}
+                  </p>}
             </Panel>
+            {walletHistoryLive
+              ? <TransactionLog transactions={transactions} />
+              : <p style={{ color:T.muted, fontSize:12 }}>
+                  {demoIdentity
+                    ? "The simulated ledger shows demo top-ups and scan-credit debits."
+                    : "Wallet history has not been loaded for this account."}
+                </p>}
+            {demoIdentity && demoReceipts.length > 0 && (
+              <Panel style={{ marginTop:14 }}>
+                <SectionHeader title="Payment receipts" action="SIMULATED PROOF" />
+                <div style={{ display:"grid", gap:8 }}>
+                  {demoReceipts.map(item => (
+                    <div key={item.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"10px 12px", border:`1px solid ${T.border}`, borderRadius:8 }}>
+                      <div>
+                        <strong style={{ display:"block", fontSize:12 }}>{item.receipt_number} · {item.line_items[0]?.description}</strong>
+                        <span style={{ color:T.muted, fontSize:11 }}>{item.credits_added.toLocaleString()} CR · {new Date(item.issued_at).toLocaleString()}</span>
+                      </div>
+                      <button type="button" onClick={() => { setCurrentReceipt(item); setTopUpOpen(true); }} className="cba-btn" style={{ padding:"7px 10px", border:`1px solid ${T.border}`, background:"transparent", color:T.neon, borderRadius:7, cursor:"pointer", whiteSpace:"nowrap" }}>View receipt</button>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
+          </Reveal>
+        )}
+
+        {activeTab === "Notifications" && (
+          <Reveal><NotificationsPanel notifications={notifications} preferences={preferences} error={notificationError} demoMode={demoIdentity} /></Reveal>
+        )}
+
+        {activeTab === "Analytics" && (
+          <Reveal><AnalyticsPanel data={analytics} error={analyticsError} /></Reveal>
+        )}
+
+        {activeTab === "Services" && (
+          <Reveal>
+            <ConnectionsPanel connections={connections} loading={connectionsLoading} refresh={refreshConnections} />
+            {apiErrors.length > 0 && (
+              <Panel style={{ marginTop:14 }}>
+                <SectionHeader title="Integration Details" />
+                {apiErrors.map((error, index) => <p key={index} style={{ color:T.warn, marginTop:6 }}>{error}</p>)}
+              </Panel>
+            )}
           </Reveal>
         )}
         </div>
       </div>
 
-      <TopUpModal open={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleTopUp} />
+      <TopUpModal
+        open={topUpOpen}
+        onClose={() => { setTopUpOpen(false); setCurrentReceipt(null); }}
+        onPurchase={handleDemoTopUp}
+        purchasing={topUpLoading}
+        receipt={currentReceipt}
+      />
       <ToastStack toasts={toasts} />
     </div>
   );

@@ -10,6 +10,9 @@ import redis
 from app.config import Settings, get_settings
 from app.db.redis_client import get_redis
 from app.tenant_contract import (
+    VALID_INDUSTRIES,
+    VALID_REGIONS,
+    VALID_SIZES,
     validate_tenant_id,
     validate_industry,
     validate_region,
@@ -17,7 +20,12 @@ from app.tenant_contract import (
     industry_key,
     region_key,
     size_key,
+    improvement_global_key,
+    improvement_industry_key,
+    improvement_region_key,
+    improvement_size_key,
     tenant_members_key,
+    tenant_metadata_key,
 )
 from app.exceptions import (
     InvalidScoreError,
@@ -129,6 +137,7 @@ class LeaderboardService:
         validated = self._validate_score(score)
         start = time.perf_counter()
         try:
+            self._ensure_not_tenant_member(username)
             self.redis.zadd(self.key, {username: validated})
             logger.info("Score set | user=%s score=%s", username, validated)
             elapsed = (time.perf_counter() - start) * 1000
@@ -164,32 +173,172 @@ class LeaderboardService:
             details={"tenant_id": tenant_id},
             ) from exc
 
+        metadata_key = tenant_metadata_key(tenant_id)
+        tenant_members_key_value = tenant_members_key(tenant_id)
+        metadata = {
+            "industry": industry,
+            "region": region,
+            "size": size,
+        }
         try:
-            pipe = self.redis.pipeline(transaction=True)
+            conflicting_memberships = [
+                members_key
+                for members_key in self._tenant_memberships(username)
+                if members_key != tenant_members_key_value
+            ]
+            if conflicting_memberships:
+                raise InvalidTenantMetadataError(
+                    "Username is already associated with another tenant",
+                    details={"username": username},
+                )
 
-            # Preserve the existing configured global leaderboard.
-            pipe.zadd(self.key, {username: validated_score})
+            pipe = self.redis.pipeline()
+            try:
+                pipe.watch(metadata_key)
+                registered_metadata = pipe.hgetall(metadata_key)
+                if not registered_metadata:
+                    raise InvalidTenantMetadataError(
+                        "Tenant must opt in before submitting scores",
+                        details={"tenant_id": tenant_id},
+                    )
+                if registered_metadata != metadata:
+                    raise InvalidTenantMetadataError(
+                        "Score metadata must match the tenant's opted-in metadata",
+                        details={"tenant_id": tenant_id},
+                    )
 
-            # Update the tenant's industry, region, and size leaderboards.
-            pipe.zadd(industry_key(industry), {username: validated_score})
-            pipe.zadd(region_key(region), {username: validated_score})
-            pipe.zadd(size_key(size), {username: validated_score})
-
-            # Record the tenant's membership.
-            pipe.sadd(tenant_members_key(tenant_id), username)
-
-            pipe.execute()
-
-            logger.info(
-                "Tenant score set | tenant=%s user=%s score=%s",
-                tenant_id,
-                username,
-                validated_score,
-            )
-            return validated_score
-
+                pipe.multi()
+                pipe.zadd(self.key, {username: validated_score})
+                pipe.zadd(industry_key(industry), {username: validated_score})
+                pipe.zadd(region_key(region), {username: validated_score})
+                pipe.zadd(size_key(size), {username: validated_score})
+                pipe.sadd(tenant_members_key_value, username)
+                pipe.execute()
+            finally:
+                pipe.reset()
         except redis.RedisError as exc:
             self._handle_redis_error("TENANT_SCORE_UPDATE", exc)
+            raise
+
+        logger.info(
+            "Tenant score set | tenant=%s user=%s score=%s",
+            tenant_id,
+            username,
+            validated_score,
+        )
+        return validated_score
+
+    @staticmethod
+    def _all_dimension_keys() -> list[str]:
+        return [
+            *(industry_key(value) for value in VALID_INDUSTRIES),
+            *(region_key(value) for value in VALID_REGIONS),
+            *(size_key(value) for value in VALID_SIZES),
+        ]
+
+    def _tenant_memberships(self, username: str) -> list[str]:
+        """Find tenants that currently include a username in their rankings."""
+        memberships = []
+        for members_key in self.redis.scan_iter(match="lb:tenant:*:members"):
+            if self.redis.sismember(members_key, username):
+                memberships.append(members_key)
+        return memberships
+
+    def _ensure_not_tenant_member(self, username: str) -> None:
+        if self._tenant_memberships(username):
+            raise InvalidTenantMetadataError(
+                "Tenant leaderboard members must be updated with tenant metadata",
+                details={"username": username},
+            )
+
+    @staticmethod
+    def _all_improvement_keys() -> list[str]:
+        return [
+            improvement_global_key(),
+            *(improvement_industry_key(value) for value in VALID_INDUSTRIES),
+            *(improvement_region_key(value) for value in VALID_REGIONS),
+            *(improvement_size_key(value) for value in VALID_SIZES),
+        ]
+
+    def opt_in_tenant(
+        self,
+        tenant_id: str,
+        industry: str,
+        region: str,
+        size: str,
+    ) -> None:
+        """Record validated tenant metadata for leaderboard participation."""
+        try:
+            tenant_id = validate_tenant_id(tenant_id)
+            metadata = {
+                "industry": validate_industry(industry),
+                "region": validate_region(region),
+                "size": validate_size(size),
+            }
+        except ValueError as exc:
+            raise InvalidTenantMetadataError(
+                str(exc),
+                details={"tenant_id": tenant_id},
+            ) from exc
+
+        metadata_key = tenant_metadata_key(tenant_id)
+        members_key = tenant_members_key(tenant_id)
+        improvement_keys = self._all_improvement_keys()
+        try:
+            pipe = self.redis.pipeline()
+            try:
+                pipe.watch(metadata_key, members_key, *improvement_keys)
+                current_metadata = pipe.hgetall(metadata_key)
+                members = pipe.smembers(members_key)
+                has_improvement = any(
+                    pipe.zscore(key, tenant_id) is not None
+                    for key in improvement_keys
+                )
+                if (members or has_improvement) and current_metadata != metadata:
+                    raise InvalidTenantMetadataError(
+                        "Tenant metadata cannot change while leaderboard scores exist",
+                        details={"tenant_id": tenant_id},
+                    )
+                pipe.multi()
+                pipe.hset(metadata_key, mapping=metadata)
+                pipe.execute()
+            finally:
+                pipe.reset()
+        except redis.RedisError as exc:
+            self._handle_redis_error("TENANT_OPT_IN", exc)
+            raise
+
+    def opt_out_tenant(self, tenant_id: str) -> int:
+        """Remove a tenant's members from all associated absolute rankings."""
+        try:
+            tenant_id = validate_tenant_id(tenant_id)
+        except ValueError as exc:
+            raise InvalidTenantMetadataError(
+                str(exc),
+                details={"tenant_id": tenant_id},
+            ) from exc
+
+        members_key = tenant_members_key(tenant_id)
+        metadata_key = tenant_metadata_key(tenant_id)
+        try:
+            pipe = self.redis.pipeline()
+            try:
+                pipe.watch(members_key, metadata_key)
+                members = pipe.smembers(members_key)
+                pipe.multi()
+                for username in members:
+                    pipe.zrem(self.key, username)
+                    for key in self._all_dimension_keys():
+                        pipe.zrem(key, username)
+                for key in self._all_improvement_keys():
+                    pipe.zrem(key, tenant_id)
+                pipe.delete(members_key, metadata_key)
+                pipe.execute()
+                return len(members)
+            finally:
+                pipe.reset()
+        except redis.RedisError as exc:
+            self._handle_redis_error("TENANT_OPT_OUT", exc)
             raise
 
     # ------------------------------------------------------------------
@@ -216,6 +365,8 @@ class LeaderboardService:
             validated[username] = self._validate_score(score)
 
         try:
+            for username in validated:
+                self._ensure_not_tenant_member(username)
             self.redis.zadd(self.key, validated)
 
             elapsed = (time.perf_counter() - start) * 1000
@@ -254,6 +405,7 @@ class LeaderboardService:
         start = time.perf_counter()
 
         try:
+            self._ensure_not_tenant_member(username)
             current = self.redis.zscore(self.key, username)
             if current is None:
                 new_score = self._validate_score(increment)
@@ -293,12 +445,45 @@ class LeaderboardService:
         Returns:
             Tuple of (ranked entries, total player count).
         """
+        return self._get_top_players(self.key, limit)
+
+    def get_dimension_top_players(
+        self,
+        dimension: str,
+        value: str | None,
+        limit: int = 10,
+    ) -> tuple[list[PlayerEntry], int]:
+        """Return ranked players from a tenant-metadata leaderboard."""
+        if dimension == "global":
+            key = self.key
+        elif dimension == "industry":
+            if value is None:
+                raise ValueError("industry value is required")
+            key = industry_key(value)
+        elif dimension == "region":
+            if value is None:
+                raise ValueError("region value is required")
+            key = region_key(value)
+        elif dimension == "size":
+            if value is None:
+                raise ValueError("size_band value is required")
+            key = size_key(value)
+        else:
+            raise ValueError("dimension must be one of: global, industry, region, size")
+        return self._get_top_players(key, limit)
+
+    def _get_top_players(
+        self,
+        key: str,
+        limit: int,
+    ) -> tuple[list[PlayerEntry], int]:
+        """Read a sorted-set leaderboard with rank positions."""
         limit = max(1, min(limit, 1000))
         start = time.perf_counter()
         try:
-            total = self.redis.zcard(self.key)
+            total = self.redis.zcard(key)
             raw = self.redis.zrevrange(
-                self.key,
+                key,
                 0,
                 limit - 1,
                 withscores=True,
@@ -393,7 +578,7 @@ class LeaderboardService:
         start = time.perf_counter()
 
         try:
-            removed = self.redis.zrem(self.key, username)
+            removed = self.delete_users([username])
 
             if removed == 0:
                 raise UserNotFoundError(
@@ -418,6 +603,23 @@ class LeaderboardService:
             self._handle_redis_error("ZREM", exc)
             raise
 
+    def _queue_tenant_index_removals(
+        self,
+        pipe: redis.client.Pipeline,
+        usernames: set[str],
+    ) -> None:
+        """Queue tenant-index and membership cleanup for matching users."""
+        for members_key in self.redis.scan_iter(match="lb:tenant:*:members"):
+            members = self.redis.smembers(members_key)
+            matching = usernames.intersection(members)
+            if not matching:
+                continue
+
+            for username in matching:
+                for key in self._all_dimension_keys():
+                    pipe.zrem(key, username)
+                pipe.srem(members_key, username)
+
     # ------------------------------------------------------------------
     # Batch Operations
     # Uses Redis pipeline to minimize network round trips.
@@ -435,15 +637,15 @@ class LeaderboardService:
         start = time.perf_counter()
 
         try:
-            pipe = self.redis.pipeline()
-
-            for username in usernames:
-                username = self._validate_username(username)
+            validated = {self._validate_username(username) for username in usernames}
+            pipe = self.redis.pipeline(transaction=True)
+            for username in validated:
                 pipe.zrem(self.key, username)
+            self._queue_tenant_index_removals(pipe, validated)
 
             results = pipe.execute()
 
-            removed = sum(int(result) for result in results)
+            removed = sum(int(result) for result in results[:len(validated)])
 
             elapsed = (time.perf_counter() - start) * 1000
 
@@ -459,10 +661,19 @@ class LeaderboardService:
             raise
 
     def reset_leaderboard(self) -> None:
-        """Clear the entire leaderboard using DEL."""
+        """Clear global and tenant absolute rankings and their membership data."""
         start = time.perf_counter()
         try:
-            self.redis.delete(self.key)
+            keys = {
+                self.key,
+                *(industry_key(value) for value in VALID_INDUSTRIES),
+                *(region_key(value) for value in VALID_REGIONS),
+                *(size_key(value) for value in VALID_SIZES),
+                *self._all_improvement_keys(),
+                *self.redis.scan_iter(match="lb:tenant:*:members"),
+                *self.redis.scan_iter(match="lb:tenant:*:metadata"),
+            }
+            self.redis.delete(*keys)
             elapsed = (time.perf_counter() - start) * 1000
             logger.info(
                 "Leaderboard reset | key=%s time=%.2f ms",

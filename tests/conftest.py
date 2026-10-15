@@ -3,10 +3,14 @@ import sys
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+BETA_DIR = ROOT_DIR / "services" / "pod_beta"
+
 os.chdir(ROOT_DIR)
 
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+for p in (ROOT_DIR, BETA_DIR):
+    p_str = str(p)
+    if p_str not in sys.path:
+        sys.path.insert(0, p_str)
 
 from app.campaign.api import catalog_service
 

@@ -23,6 +23,19 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_AUDIENCE: Optional[str] = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    DEV_DEMO_AUTH_ENABLED: bool = True
+    DEMO_ACCOUNT_ID: str = "manager@cybreach.demo"
+    DEMO_ACCOUNT_PASSWORD: str = "ArenaDemo2026!"
+    DEMO_STARTING_CREDITS: int = Field(default=1200, ge=0, le=10_000_000)
+
+    POD_BETA_CAMPAIGN_URL: Optional[str] = "http://127.0.0.1:8001"
+    POD_BETA_ENGAGEMENT_URL: Optional[str] = "http://127.0.0.1:8002"
+    POD_GAMMA_URL: Optional[str] = "http://127.0.0.1:8003"
+    WALLET_SERVICE_URL: Optional[str] = "http://127.0.0.1:8004"
+    WALLET_SERVICE_JWT_SECRET: Optional[str] = None
+    WALLET_SERVICE_JWT_ALGORITHM: str = "HS256"
+    POD_DELTA_INTERNAL_URL: Optional[str] = "http://127.0.0.1:8000"
+    UPSTREAM_TIMEOUT_SECONDS: float = 5.0
 
     LOG_LEVEL: str = "INFO"
 
@@ -64,4 +77,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

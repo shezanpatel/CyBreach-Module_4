@@ -1,280 +1,131 @@
-﻿# CyBreach Module 4 - Pod Gamma Service
+# Pod Gamma - Leaderboards and Benchmarks
 
-Pod Gamma delivers real-time scoring analytics, high-velocity leaderboard aggregation, cohort benchmarking, user activity streaks, and badge achievement verification for the CyBreach platform.
+Pod Gamma is a FastAPI service backed by Redis. It provides player score and
+rank APIs, tenant-aware dimension rankings, improvement rankings, cohort
+benchmark endpoints, and additional Arena analytics/streak/badge routes.
 
-The system combines an in-memory Redis sorted-set engine for sub-millisecond ranking queries with an asynchronous PostgreSQL persistence layer for cross-tenant historical data, user profiles, streaks, and verifiable achievement awards.
+## Current behavior
 
----
+- Redis stores absolute global, industry, region, and size leaderboards and
+  improvement rankings.
+- Tenant opt-in records validated industry, region, and size metadata. Tenant
+  score updates require opt-in and exactly matching metadata.
+- A username can belong to only one tenant. Global-only set, increment, and
+  bulk-score writes are rejected for users currently associated with a tenant
+  so dimension rankings cannot drift out of sync.
+- Opt-out removes the tenant's absolute and improvement rankings and consent
+  metadata. Absolute-score and improvement updates require opt-in again.
+- Opt-in metadata cannot change while absolute or improvement scores exist.
+  User deletion cleans associated dimension indexes; leaderboard reset clears
+  absolute and improvement rankings.
+- Benchmark, comparison, and trend endpoints use exact seeded synthetic demo
+  data. They are labelled as synthetic, are not real/private peer data, and do
+  not apply differential privacy.
 
-## Architecture Overview
+## Requirements
 
-```
-                                +-------------------------------+
-                                |  FastAPI Gateway (:8000)      |
-                                +---------------+---------------+
-                                                |
-                   +----------------------------+----------------------------+
-                   |                                                         |
-         [Low-Latency Cache / State]                               [Relational Persistence]
-                   |                                                         |
-         +---------v---------+                                     +---------v---------+
-         |    Redis Store    |                                     |   PostgreSQL 16   |
-         | (Sorted Sets ZSET)|                                     |   (Asyncpg/SQLA)  |
-         +-------------------+                                     +-------------------+
-          - Global Leaderboards                                     - User Profiles
-          - Dimension Rankings                                      - Streak History
-          - Delta Improvement                                       - Badge Awards & Evidence
-          - Tenant Indexing                                         - Benchmark Aggregates
+- Python 3.12 recommended
+- Redis 7+
+- PostgreSQL 16 for routes/features that use Gamma's relational persistence
+- Docker Compose for the included standalone infrastructure
 
-```
+## Run standalone with Docker Compose
 
----
+From this directory:
 
-## Core Capabilities
-
-* Real-Time Leaderboard Engine (Redis): Tracks absolute and relative rankings globally and across dimensions (governance, identity, threat, cloud).
-* Velocity & Improvement Tracking: Computes delta scores against historical snapshots to rank organizations by improvement rate.
-* Benchmarking & Cohort Comparison: Compares tenant performance against peer cohorts segmented by industry sector and company size.
-* Activity & Streak Engine: Implements a strict activity window (completions under 24 hours are debounced, 24-48 hours increment the streak, and >48 hours reset the streak).
-* Verifiable Badge Awards: Unlocks milestone achievements and persists audit proof via structured evidence_ref tokens.
-* Resilience & Rate Limiting: Sliding-window rate limiters per tenant with graceful fallback handling.
-
----
-
-## Repository Structure
-
-```
-CyBreach-Module_4-Pod-Gamma/
-├── app/
-│   ├── api/                   # Router modules (leaderboard, benchmark endpoints)
-│   ├── core/                  # Rate limiting & middleware
-│   ├── db/                    # DB engine, Redis client, declarative base
-│   │   ├── __init__.py        # PostgreSQL AsyncSession & Base declaration
-│   │   └── redis_client.py    # Redis async connection pool
-│   ├── models/                # Pydantic schemas & database entities
-│   │   ├── __init__.py
-│   │   └── schemas.py         # Request/Response validation models
-│   ├── services/              # Business logic (leaderboard, improvement service)
-│   ├── utils/                 # Statistical utilities & structured logging
-│   ├── award_models.py        # SQLAlchemy BadgeAward DB models
-│   ├── award_repository.py    # BadgeAward queries and persistence
-│   ├── badges.py              # Gamification & badge criteria evaluation
-│   ├── config.py              # Centralized environment configuration
-│   ├── main.py                # Unified FastAPI gateway and routing
-│   ├── models.py              # SQLAlchemy UserProfile DB models
-│   ├── streak.py              # 24h/48h streak evaluation logic
-│   ├── tenant_contract.py     # Tenant metadata contract rules
-│   ├── user_models.py         # Relational user entities
-│   └── user_repository.py     # UserProfile queries and persistence
-├── config/
-│   └── badges.json            # Badge definitions, milestones, and icon mappings
-├── database/
-│   ├── 001_sanitize_leaderboard_snapshot.sql
-│   ├── 002_create_leaderboard_snapshot.sql
-│   ├── 003_create_benchmark_aggregate.sql
-│   ├── 005_add_badge_award_evidence.sql
-│   ├── 005_seed_benchmark_aggregate.sql
-│   ├── 006_create_benchmark_historical.sql
-│   ├── 006_update_badge_award_primary_key.sql
-│   ├── 007_create_user_profile.sql
-│   ├── 007_seed_benchmark_historical.sql
-│   ├── redis.conf             # Redis configuration
-│   └── verify_leaderboard.py  # Snapshot verification utility
-├── docs/
-│   ├── integration_guide.md   # Inter-pod integration specifications
-│   └── redis_module.md        # Redis key taxonomy & schema documentation
-├── tests/                     # 72-case automated test suite
-├── Dockerfile                 # Multi-stage production container image
-├── docker-compose.yml         # Local stack orchestration (API + Redis + Postgres)
-├── pytest.ini                 # Pytest runner & warning filter settings
-└── requirements.txt           # Unified dependency manifest
-
+```powershell
+Copy-Item .env.example .env
+# Edit .env and set a local POSTGRES_PASSWORD and Redis credentials as needed.
+docker compose up --build
 ```
 
----
+The standalone compose file exposes the API at <http://127.0.0.1:8000>, Redis
+at port 6379, and PostgreSQL at port 5432. These ports overlap with other
+services in this repository. Change the compose host mappings and configure
+Delta's `POD_GAMMA_URL` before running the stacks concurrently.
 
-## Environment Setup
+## Run the API on the host
 
-### 1. Prerequisites
+Start Redis and PostgreSQL first, then from this directory:
 
-* Python 3.12 or 3.13
-* Docker & Docker Compose (recommended for dependencies)
-* PostgreSQL 16+ (if running without Docker)
-* Redis 7.x+ (if running without Docker)
-
-### 2. Environment Variables
-
-Create a .env file in the root directory:
-
-```bash
-# On Windows CMD:
-copy .env.example .env
-
-# On Linux/macOS:
-cp .env.example .env
-
-```
-
-Ensure the configuration matches your local or container setup:
-
-```ini
-APP_HOST=0.0.0.0
-APP_PORT=8000
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/cybreach
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-```
-
----
-
-## How to Run
-
-### Method 1: Using Docker Compose (Full Stack)
-
-This is the fastest method to spin up the FastAPI gateway, Redis, and PostgreSQL with all dependencies pre-configured:
-
-```bash
-# Build images and start all containers in detached mode
-docker-compose up --build -d
-
-# Follow application logs
-docker-compose logs -f app
-
-# Stop the stack
-docker-compose down
-
-```
-
-The gateway will be accessible at http://localhost:8000.
-
----
-
-### Method 2: Running Locally (Development Mode)
-
-If running the application directly on your host machine:
-
-#### Step 1: Start Redis and PostgreSQL
-
-If you already have Docker installed, start just the backing data stores:
-
-```bash
-docker run --name cybreach-redis -p 6379:6379 -d redis:7-alpine
-docker run --name cybreach-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=cybreach -p 5432:5432 -d postgres:16-alpine
-
-```
-
-#### Step 2: Set Up Python Virtual Environment
-
-On Windows (CMD):
-
-```cmd
+```powershell
+Copy-Item .env.example .env
 python -m venv .venv
-.venv\Scripts\activate
-pip install --upgrade pip
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-On Linux / macOS:
+To use a non-default port such as the Arena gateway's default Gamma port:
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-
+```powershell
+$env:APP_PORT = "8003"
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8003
 ```
 
-#### Step 3: Run Database Migrations
+Set `REDIS_HOST`, `REDIS_PORT`, database settings, and credentials in `.env` to
+match the services you started. The `uvicorn --port` argument controls the
+actual listener port; set the matching application setting for accurate
+configuration reporting.
 
-Initialize the schema and seed data into PostgreSQL:
+## API reference
 
-```bash
-psql -U postgres -h localhost -d cybreach -f database/001_sanitize_leaderboard_snapshot.sql
-psql -U postgres -h localhost -d cybreach -f database/002_create_leaderboard_snapshot.sql
-psql -U postgres -h localhost -d cybreach -f database/003_create_benchmark_aggregate.sql
-psql -U postgres -h database/005_add_badge_award_evidence.sql
-psql -U postgres -h localhost -d cybreach -f database/005_seed_benchmark_aggregate.sql
-psql -U postgres -h localhost -d cybreach -f database/006_create_benchmark_historical.sql
-psql -U postgres -h localhost -d cybreach -f database/006_update_badge_award_primary_key.sql
-psql -U postgres -h localhost -d cybreach -f database/007_create_user_profile.sql
-psql -U postgres -h localhost -d cybreach -f database/007_seed_benchmark_historical.sql
+The API docs are available at `/docs` on the configured host/port. Common
+endpoints include:
 
+| Method and path | Purpose |
+| --- | --- |
+| `GET /health` | App and Redis health |
+| `GET /leaderboard?limit=10` | Global absolute ranking |
+| `GET /leaderboard/{dimension}` | Global, industry, region, or size absolute ranking |
+| `POST /score` | Add/update a global or tenant-aware score |
+| `POST /increment` | Increment a global-only player score |
+| `GET /rank/{username}` | Get a player's score and rank |
+| `GET /improvement?dimension=global` | Tenant improvement ranking |
+| `POST /opt-in` / `POST /opt-out` | Manage tenant leaderboard consent |
+| `DELETE /user/{username}` | Remove a player and associated dimension indexes |
+| `DELETE /leaderboard` | Reset absolute and improvement indexes |
+| `GET /benchmark/cohorts` | List seeded cohorts meeting the peer threshold |
+| `POST /benchmark` | Read a seeded cohort baseline |
+| `POST /benchmark/compare` | Compare regional and global synthetic baselines |
+| `GET /benchmark/trend/{tenant_id}` | Read seeded historical synthetic trend |
+
+Non-global leaderboard filters are `industry`, `region`, and `size_band`.
+Improvement filters use `dimension` and `value`. Review API schemas in the
+interactive docs for request payload shapes.
+
+## Example tenant consent flow
+
+Opt in before writing a tenant score:
+
+```powershell
+curl.exe -X POST http://127.0.0.1:8000/opt-in `
+  -H "Content-Type: application/json" `
+  -d "{\"tenant_id\":\"CORP-001\",\"industry\":\"technology\",\"region\":\"europe\",\"size\":\"1-50\"}"
+
+curl.exe -X POST http://127.0.0.1:8000/score `
+  -H "Content-Type: application/json" `
+  -d "{\"username\":\"tenant_user\",\"score\":1500,\"tenant_id\":\"CORP-001\",\"industry\":\"technology\",\"region\":\"europe\",\"size\":\"1-50\"}"
 ```
 
-#### Step 4: Start the FastAPI Server
+After opt-out, score and improvement writes are rejected until the tenant
+consents again. Do not send real organization data to the seeded benchmark API.
 
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+## Tests
 
+From the repository root:
+
+```powershell
+Set-Location services\pod_gamma
+..\..\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
----
+Or run the repository's full test command from the root:
 
-## Verifying the Service
-
-Once started, test the application via curl or browse the interactive documentation:
-
-* Swagger UI: http://localhost:8000/docs
-* ReDoc: http://localhost:8000/redoc
-
-### Smoke Test Commands
-
-1. Health Check:
-curl http://localhost:8000/health
-2. Metrics:
-curl http://localhost:8000/metrics
-3. Ingest Analytics (SQL Track):
-curl -X POST http://localhost:8000/api/v1/analytics -H "Content-Type: application/json" -d "{"tenant_id":"tenant_alpha","scores":[{"user_id":"usr_100","score":92.5,"timestamp":"2026-10-06T12:00:00Z"}]}"
-4. Query Global Leaderboard (Redis Track):
-curl http://localhost:8000/api/v1/leaderboard/global
-5. Verify User Streak:
-curl -X POST http://localhost:8000/api/v1/streak/verify -H "Content-Type: application/json" -d "{"user_id":"usr_100","action_timestamp":"2026-10-06T12:00:00Z"}"
-
----
-
-## Running the Automated Test Suite
-
-Run the full pytest suite (72 unit and integration tests across all microservice layers):
-
-```bash
-pytest -v
-
+```powershell
+.\run-all-tests.ps1
 ```
 
-To run with test coverage reporting:
-
-```bash
-pytest -v --cov=app --cov-report=term-missing
-
-```
-
----
-
-## API Reference
-
-### Health & Metrics
-
-* GET /health - Liveness and readiness probe
-* GET /metrics - Prometheus and operational runtime metrics
-
-### Leaderboard & Benchmarking (Redis Core)
-
-* GET /api/v1/leaderboard/global - Global absolute rankings
-* GET /api/v1/leaderboard/{dimension} - Absolute rankings by category dimension
-* POST /api/v1/leaderboard/score - Update or increment tenant score
-* GET /api/v1/leaderboard/rank/{tenant_id} - Fetch current rank and score for a tenant
-* GET /api/v1/leaderboard/improvement/global - Top tenant velocity rankings
-* GET /api/v1/leaderboard/improvement/{dimension} - Top velocity rankings for a dimension
-* GET /api/v1/benchmark/compare - Cohort peer comparison analysis
-
-### Analytics, Streaks & Gamification (SQL Core)
-
-* POST /api/v1/analytics - Ingest streaming analytics payload
-* POST /api/v1/streak/verify - Evaluate activity timestamps and update consecutive streaks
-* GET /user/{user_id}/streak - Retrieve current streak count and last active timestamp
-* GET /user/{user_id}/badges - Retrieve unlocked badges for a user
-* POST /api/v1/achievements/check - Process achievement criteria with evidence_ref validation
-
+The tests use in-memory Redis where configured. See
+[`docs/redis_module.md`](docs/redis_module.md) for Redis key details.

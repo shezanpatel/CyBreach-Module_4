@@ -266,7 +266,29 @@ def get_dimension_leaderboard(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid dimension {dimension}. Allowed: {sorted(valid_dims)}",
         )
-    entries, total = service.get_top_players(limit=limit)
+    if view == "improvement":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use /improvement?dimension=... for improvement rankings",
+        )
+
+    value = {
+        "industry": industry,
+        "region": region,
+        "size": size_band,
+    }.get(dimension)
+    try:
+        entries, total = service.get_dimension_top_players(
+            dimension=dimension,
+            value=value,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
     return LeaderboardResponse(
         dimension=dimension,
         view=view,
@@ -274,4 +296,3 @@ def get_dimension_leaderboard(
         limit=limit,
         entries=entries,
     )
-

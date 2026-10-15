@@ -3,8 +3,8 @@
   "title": "Ransomware Readiness and Defense Efficacy",
   "description": "Validates enterprise resistance against ransomware infection stages including credential access and endpoint defense evasion.",
   "playbook_hashes": [
-    "sha256:11223344556677889900aabbccddeeff0011223344556677889900aabbccddeeff",
-    "sha256:223344556677889900aabbccddeeff0011223344556677889900aabbccddeeff11"
+    "sha256:16af858cfe50771c3b224459248965a9698439527b99de1dc0d3dafbcac4a218",
+    "sha256:eb553ecc9901e9e4c937791af94ea23e9cc5c7ab9d9531ff52673741066ce7b0"
   ],
   "tier": "guided",
   "regions": ["global", "na", "eu"],

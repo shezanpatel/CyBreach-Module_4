@@ -41,19 +41,19 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
 
     await start_producer()
-    print("✅ Kafka producer started")
+    print("Kafka producer started")
 
     start_scheduler()
-    print("✅ Wallet reconciliation scheduler started")
+    print("Wallet reconciliation scheduler started")
 
     try:
         yield
     finally:
         stop_scheduler()
-        print("🛑 Wallet reconciliation scheduler stopped")
+        print("Wallet reconciliation scheduler stopped")
 
         await stop_producer()
-        print("🛑 Kafka producer stopped")
+        print("Kafka producer stopped")
 
 
 app = FastAPI(
@@ -332,4 +332,3 @@ def health_check():
         "version": settings.APP_VERSION,
         "status": "running",
     }
-

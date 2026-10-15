@@ -6,7 +6,11 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 
 
-ORIGINAL_TESTCLIENT_INIT = TestClient.__init__
+ORIGINAL_TESTCLIENT_INIT = getattr(
+    TestClient.__init__,
+    "_wallet_original_init",
+    TestClient.__init__,
+)
 
 
 def create_test_access_token(
@@ -52,6 +56,12 @@ def _secured_testclient_init(
         **kwargs,
     )
 
+_secured_testclient_init._wallet_original_init = ORIGINAL_TESTCLIENT_INIT
+_secured_testclient_init._wallet_test_auth_wrapper = True
 
-TestClient.__init__ = _secured_testclient_init
-
+if not getattr(
+    TestClient.__init__,
+    "_wallet_test_auth_wrapper",
+    False,
+):
+    TestClient.__init__ = _secured_testclient_init

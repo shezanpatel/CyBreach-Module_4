@@ -9,7 +9,7 @@ DEFAULT_BADGE_CONFIG = (
 )
 
 def load_badge_definitions(config_path: Path = DEFAULT_BADGE_CONFIG) -> dict[int, str]:
-    with config_path.open("r", encoding="utf-8") as config_file:
+    with config_path.open("r", encoding="utf-8-sig") as config_file:
         definitions = json.load(config_file)
 
     return {int(streak): badge_id for streak, badge_id in definitions.items()}
