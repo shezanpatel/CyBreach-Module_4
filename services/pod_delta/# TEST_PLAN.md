@@ -1,4 +1,4 @@
-# TEST_PLAN — CyBreach Arena Pod Delta Backend
+﻿# TEST_PLAN - CyBreach Arena Pod Delta Backend
 
 Tester: Medha
 Date: ____
@@ -18,7 +18,7 @@ How to use: send each request from `api_requests.http`, compare the status with 
 | H-03 | `GET /api/v1/integration/health` | 200 (`"degraded"` is OK if Redis/Kafka aren't running) | | |
 | H-04 | `GET /metrics` | 200, plain-text metrics | | |
 
-## 2. Notifications — `/api/v1/notifications`
+## 2. Notifications - `/api/v1/notifications`
 
 | ID | Request | Expected | Result | Notes |
 |----|---------|----------|--------|-------|
@@ -40,7 +40,7 @@ How to use: send each request from `api_requests.http`, compare the status with 
 | N-16 | `DELETE /{id}` again (same id) | 404 |✅ | |
 | N-17 | `DELETE /bulk` with a list of ids | 200 | ✅| |
 
-## 3. Preferences — `/api/v1/preferences`
+## 3. Preferences - `/api/v1/preferences`
 
 | ID | Request | Expected | Result | Notes |
 |----|---------|----------|--------|-------|
@@ -51,9 +51,9 @@ How to use: send each request from `api_requests.http`, compare the status with 
 | P-05 | `PUT /1` (e.g. turn SMS off, set quiet hours) | 200, changes saved |✅ | |
 | P-06 | `PUT /999999` | 404 | ✅| |
 | P-07 | `user_id 0` | 422 | ✅| |
-| P-08 | `invalid quiet hours` | 422 |200 |1. Preferences accept invalid values (P-08). PUT /api/v1/preferences/{user_id} saved quiet_hours_start: "25:99" and frequency: "whenever" with a 200. The schema declares both as plain str with no validation. Expected: 422. Suggested fix: validate times as HH:MM (00:00–23:59) and restrict frequency to a fixed set of values (e.g. realtime / hourly / daily / weekly).2. weekly_summary can't be changed. It's returned in every preference response (default true) but isn't accepted by POST or PUT, so users can't turn it off. | made aot changes in app/schemas/preferences.py
+| P-08 | `invalid quiet hours` | 422 |200 |1. Preferences accept invalid values (P-08). PUT /api/v1/preferences/{user_id} saved quiet_hours_start: "25:99" and frequency: "whenever" with a 200. The schema declares both as plain str with no validation. Expected: 422. Suggested fix: validate times as HH:MM (00:00-23:59) and restrict frequency to a fixed set of values (e.g. realtime / hourly / daily / weekly).2. weekly_summary can't be changed. It's returned in every preference response (default true) but isn't accepted by POST or PUT, so users can't turn it off. | made aot changes in app/schemas/preferences.py
 
-## 4. Analytics — `/api/v1/analytics`
+## 4. Analytics - `/api/v1/analytics`
 
 | ID | Request | Expected | Result | Notes |
 |----|---------|----------|--------|-------|
@@ -79,7 +79,7 @@ How to use: send each request from `api_requests.http`, compare the status with 
 | A-18 | `POST /` (tenant `tenant_123`) | 201, returns `id` |✅ | id = _1___ |
 | A-19 | `POST /` (tenant `tenant_123`) | 201, returns `id` | ✅| id = __1__ |
 
-## 5. Integration — `/api/v1/integration` (JWT required)
+## 5. Integration - `/api/v1/integration` (JWT required)
 
 | ID | Request | Expected | Result | Notes |
 |----|---------|----------|--------|-------|

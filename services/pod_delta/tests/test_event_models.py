@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 import pytest
 
@@ -100,3 +100,4 @@ def test_score_displayed_event():
     dumped = event.model_dump()
     assert dumped["event_type"] == "score.displayed"
     assert dumped["event_version"] == "1.0"
+

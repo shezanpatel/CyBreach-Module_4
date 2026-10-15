@@ -1,4 +1,4 @@
-"""JWT-protected WebSocket endpoint /ws/{tenant_id}."""
+﻿"""JWT-protected WebSocket endpoint /ws/{tenant_id}."""
 
 from __future__ import annotations
 
@@ -58,3 +58,4 @@ async def websocket_tenant_feed(
         logger.info("ws_client_disconnected", tenant_id=tenant_id)
     finally:
         await manager.disconnect(tenant_id, connection_id)
+

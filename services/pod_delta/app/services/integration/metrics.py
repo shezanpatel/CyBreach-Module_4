@@ -1,4 +1,4 @@
-"""Prometheus metrics for Kafka consumption, lag, errors, and WebSockets."""
+﻿"""Prometheus metrics for Kafka consumption, lag, errors, and WebSockets."""
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
@@ -45,3 +45,4 @@ RATE_LIMITED = Counter(
 
 def metrics_output() -> bytes:
     return generate_latest()
+

@@ -1,4 +1,4 @@
-"""Integration REST helpers: cached score and health."""
+﻿"""Integration REST helpers: cached score and health."""
 
 import json
 
@@ -89,3 +89,4 @@ async def flush_analytics(
 @router.get("/metrics")
 async def prometheus_metrics() -> Response:
     return Response(content=metrics_output(), media_type="text/plain")
+

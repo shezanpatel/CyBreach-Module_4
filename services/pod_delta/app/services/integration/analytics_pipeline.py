@@ -1,4 +1,4 @@
-"""Hand off consumed events to the existing Analytics Engine (not ClickHouse queries)."""
+﻿"""Hand off consumed events to the existing Analytics Engine (not ClickHouse queries)."""
 
 from __future__ import annotations
 
@@ -135,3 +135,4 @@ class AnalyticsPipeline:
             if result is not None:
                 flushed += 1
         return flushed
+

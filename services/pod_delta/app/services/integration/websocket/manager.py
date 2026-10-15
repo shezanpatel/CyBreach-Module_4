@@ -1,4 +1,4 @@
-"""Multi-instance WebSocket fan-out via Redis pub/sub."""
+﻿"""Multi-instance WebSocket fan-out via Redis pub/sub."""
 
 from __future__ import annotations
 
@@ -165,3 +165,4 @@ class ConnectionManager:
 
     def local_connection_count(self) -> int:
         return sum(len(v) for v in self._local.values())
+

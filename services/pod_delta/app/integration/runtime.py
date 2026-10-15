@@ -1,4 +1,4 @@
-"""Integration lifespan wiring."""
+﻿"""Integration lifespan wiring."""
 
 from __future__ import annotations
 
@@ -67,3 +67,4 @@ async def stop_integration() -> None:
         await _websocket_manager.stop()
         _websocket_manager = None
     await close_redis()
+

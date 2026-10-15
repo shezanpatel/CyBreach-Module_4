@@ -1,4 +1,4 @@
-"""Thin async handlers that call existing Notification and Analytics services."""
+﻿"""Thin async handlers that call existing Notification and Analytics services."""
 
 from __future__ import annotations
 
@@ -218,3 +218,4 @@ class IntegrationHandlers:
             return int(record.id)
         finally:
             db.close()
+

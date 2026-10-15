@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -126,3 +126,4 @@ async def health_check():
 @app.get("/metrics", summary="Prometheus metrics")
 async def prometheus_root() -> Response:
     return Response(content=metrics_output(), media_type="text/plain")
+

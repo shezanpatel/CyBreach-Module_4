@@ -1,4 +1,4 @@
-"""Pydantic event contracts for Pod Delta integration topics."""
+﻿"""Pydantic event contracts for Pod Delta integration topics."""
 
 from __future__ import annotations
 
@@ -169,4 +169,5 @@ def published_envelope(
         timestamp=timestamp or utc_now(),
         data=data,
     ).model_dump(mode="json")
+
 

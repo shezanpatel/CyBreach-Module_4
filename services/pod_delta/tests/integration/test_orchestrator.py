@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -95,3 +95,4 @@ async def test_orchestrator_calls_notification_hub(redis):
         NotificationChannel.EMAIL.value,
     }
     producer.publish_owned.assert_awaited()
+

@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 
 from app.core.settings import settings
 
@@ -7,3 +7,4 @@ from app.core.settings import settings
 def disable_kafka(monkeypatch):
     monkeypatch.setattr(settings, "KAFKA_ENABLE", False)
     monkeypatch.setattr(settings, "ANALYTICS_FLUSH_INTERVAL_SECONDS", 86_400)
+

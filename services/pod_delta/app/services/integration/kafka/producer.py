@@ -1,4 +1,4 @@
-"""Kafka producer with at-least-once acknowledgements."""
+﻿"""Kafka producer with at-least-once acknowledgements."""
 
 from __future__ import annotations
 
@@ -99,3 +99,4 @@ class KafkaProducerService:
             EVENTS_DLT.labels(topic=original_topic).inc()
         except Exception as exc:  # noqa: BLE001
             logger.error("dlt_publish_failed", topic=dlt, error=str(exc))
+

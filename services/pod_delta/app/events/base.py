@@ -1,4 +1,4 @@
-"""Shared envelope for all Pod Delta Kafka events."""
+﻿"""Shared envelope for all Pod Delta Kafka events."""
 
 from datetime import datetime, timezone
 from typing import Any
@@ -51,3 +51,4 @@ class StrictPublishedEvent(BaseModel):
 
 def dump_event(model: BaseModel) -> dict[str, Any]:
     return model.model_dump(mode="json")
+

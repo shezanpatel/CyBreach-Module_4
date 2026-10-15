@@ -1,4 +1,4 @@
-"""Route validated events to thin integration handlers."""
+﻿"""Route validated events to thin integration handlers."""
 
 from __future__ import annotations
 
@@ -37,4 +37,5 @@ class EventRouter:
                     "data": event.data.model_dump(mode="json"),
                 },
             )
+
 

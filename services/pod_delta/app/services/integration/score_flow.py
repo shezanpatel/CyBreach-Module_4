@@ -1,4 +1,4 @@
-"""Score cache + live WebSocket push + score.displayed publish."""
+﻿"""Score cache + live WebSocket push + score.displayed publish."""
 
 from __future__ import annotations
 
@@ -55,3 +55,4 @@ class ScoreDisplayFlow:
             push_delivered=displayed.push_delivered,
         )
         return displayed
+

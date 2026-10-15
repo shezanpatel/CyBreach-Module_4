@@ -1,4 +1,4 @@
-"""Kafka event handlers."""
+﻿"""Kafka event handlers."""
 
 from __future__ import annotations
 
@@ -106,3 +106,4 @@ class EventHandlers:
                 "metrics": event.metrics,
             },
         )
+

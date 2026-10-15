@@ -1,4 +1,4 @@
-"""Pydantic contracts for topics Pod Delta publishes."""
+﻿"""Pydantic contracts for topics Pod Delta publishes."""
 
 from typing import Any, Literal, Optional
 
@@ -30,3 +30,4 @@ class ScoreDisplayedEvent(StrictPublishedEvent):
     score: float = Field(..., ge=0, le=100)
     cache_key: str
     push_delivered: bool = False
+

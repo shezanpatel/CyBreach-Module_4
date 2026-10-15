@@ -1,4 +1,4 @@
-"""Sliding-window rate limiter: rate_limit:{tenant_id}:{event_type} TTL 60s."""
+﻿"""Sliding-window rate limiter: rate_limit:{tenant_id}:{event_type} TTL 60s."""
 
 from __future__ import annotations
 
@@ -61,3 +61,4 @@ class SlidingWindowRateLimiter:
             remaining=remaining,
             key=key,
         )
+

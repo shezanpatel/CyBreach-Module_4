@@ -1,4 +1,4 @@
-"""Async Kafka/Redpanda consumer and producer."""
+﻿"""Async Kafka/Redpanda consumer and producer."""
 
 from __future__ import annotations
 
@@ -110,3 +110,4 @@ class KafkaConsumer:
     async def process_message(self, topic: str, payload: dict[str, Any]) -> None:
         event = validate_event(topic, payload)
         await self.router.route(event)
+

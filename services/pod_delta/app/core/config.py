@@ -1,4 +1,4 @@
-"""Re-exports application settings for existing modules."""
+﻿"""Re-exports application settings for existing modules."""
 
 from app.core.settings import settings
 
@@ -12,3 +12,4 @@ ANALYTICS_RETENTION_DAYS = settings.ANALYTICS_RETENTION_DAYS
 CACHE_TTL_SECONDS = settings.CACHE_TTL_SECONDS
 ALLOWED_HOSTS = settings.ALLOWED_HOSTS
 LOG_LEVEL = settings.LOG_LEVEL
+

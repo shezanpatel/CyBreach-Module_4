@@ -1,4 +1,4 @@
-"""Thin orchestration: preferences → rate limit → Notification Hub → Kafka."""
+﻿"""Thin orchestration: preferences → rate limit → Notification Hub → Kafka."""
 
 from __future__ import annotations
 
@@ -196,3 +196,4 @@ class NotificationOrchestrator:
             notification_id=created.id,
         )
         return sent_event
+

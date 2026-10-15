@@ -1,4 +1,4 @@
-"""Async Redis client used for rate limits, cache, and WebSocket fan-out."""
+﻿"""Async Redis client used for rate limits, cache, and WebSocket fan-out."""
 
 from typing import Optional
 
@@ -42,3 +42,4 @@ async def close_redis() -> None:
 def set_redis_for_tests(client: Optional[Redis]) -> None:
     global _redis
     _redis = client
+

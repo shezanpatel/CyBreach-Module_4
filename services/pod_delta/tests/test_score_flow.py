@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -43,3 +43,4 @@ async def test_score_flow_caches_broadcasts_and_publishes(redis, monkeypatch):
     cached = await redis.get("score:t-live")
     assert cached is not None
     assert "91.0" in cached or "91" in cached
+

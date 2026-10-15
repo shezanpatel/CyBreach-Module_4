@@ -1,4 +1,4 @@
-from fastapi import Request
+﻿from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -112,3 +112,4 @@ async def analytics_database_handler(
         status_code=500,
         content={"detail": exc.message}
     )
+

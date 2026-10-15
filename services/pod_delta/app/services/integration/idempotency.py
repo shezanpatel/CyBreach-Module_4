@@ -1,4 +1,4 @@
-"""Redis-backed Kafka event idempotency."""
+﻿"""Redis-backed Kafka event idempotency."""
 
 from redis.asyncio import Redis
 
@@ -23,3 +23,4 @@ class IdempotencyStore:
             nx=True,
         )
         return created is None or created is False
+

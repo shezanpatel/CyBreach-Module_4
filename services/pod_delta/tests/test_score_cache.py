@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 import pytest
 from fakeredis import FakeAsyncRedis
@@ -42,3 +42,4 @@ async def test_score_cache_key_and_roundtrip(redis):
 async def test_missing_score_returns_none(redis):
     cache = ScoreCache(redis)
     assert await cache.get("missing") is None
+

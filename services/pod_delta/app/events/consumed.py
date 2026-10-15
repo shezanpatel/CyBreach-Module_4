@@ -1,4 +1,4 @@
-"""Pydantic contracts for topics Pod Delta consumes."""
+﻿"""Pydantic contracts for topics Pod Delta consumes."""
 
 from typing import Any, Literal, Optional
 
@@ -78,3 +78,4 @@ TOPIC_EVENT_TYPE: dict[str, str] = {
     ConsumeTopic.LEADERBOARD_UPDATED.value: "leaderboard.updated",
     ConsumeTopic.BENCHMARK_COMPUTED.value: "benchmark.computed",
 }
+

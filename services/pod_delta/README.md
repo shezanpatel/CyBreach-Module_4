@@ -1,4 +1,4 @@
-# CyBreach Arena – Full Setup Guide
+﻿# CyBreach Arena - Full Setup Guide
 
 This repository is a full-stack project built around a FastAPI backend for the Pod Delta system. It contains:
 
@@ -378,18 +378,18 @@ If you want to run the frontend files directly in the same repo, create a Vite a
 
 If you want to start the entire stack from scratch, follow this order:
 
-### Step 1 – Install tools
+### Step 1 - Install tools
 - Install Python
 - Install Node.js + npm
 - Install Docker Desktop
 
-### Step 2 – Clone repo
+### Step 2 - Clone repo
 ```bash
 git clone https://github.com/medhagupta1216/CyBreach-arena--Pod-delta.git
 cd CyBreach-arena--Pod-delta
 ```
 
-### Step 3 – Backend setup
+### Step 3 - Backend setup
 ```powershell
 Copy-Item .env.example .env
 python -m venv venv
@@ -398,22 +398,22 @@ pip install --upgrade pip
 pip install -r requirements.txt psycopg2-binary
 ```
 
-### Step 4 – Start infrastructure
+### Step 4 - Start infrastructure
 ```powershell
 docker compose up -d redis redpanda redpanda-init postgres clickhouse
 ```
 
-### Step 5 – Run backend
+### Step 5 - Run backend
 ```powershell
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### Step 6 – Open Swagger
+### Step 6 - Open Swagger
 ```text
 http://127.0.0.1:8000/api/docs
 ```
 
-### Step 7 – Optional React frontend
+### Step 7 - Optional React frontend
 ```powershell
 npm create vite@latest cybreach-frontend -- --template react
 cd cybreach-frontend
@@ -509,4 +509,5 @@ Postgres:            localhost:5432
 ```
 
 This gives you a complete from-scratch setup for the project, including backend, APIs, notification flow, integration services, and frontend prototype startup.
+
 

@@ -1,4 +1,4 @@
-"""JWT authentication reused by REST and WebSocket endpoints."""
+﻿"""JWT authentication reused by REST and WebSocket endpoints."""
 
 from typing import Any, Optional
 
@@ -85,3 +85,4 @@ def decode_websocket_token(token: Optional[str]) -> AuthenticatedPrincipal:
         )
     payload = decode_access_token(token)
     return principal_from_claims(payload)
+

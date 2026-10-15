@@ -1,4 +1,4 @@
-# Integration Runbook
+﻿# Integration Runbook
 
 ## Start
 
@@ -91,3 +91,4 @@ docker compose exec redpanda rpk topic consume analytics.report --brokers redpan
 ```powershell
 pytest tests/integration/test_app_integration_layer.py
 ```
+

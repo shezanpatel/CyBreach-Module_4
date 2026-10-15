@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 from fakeredis import FakeAsyncRedis
 
 from app.services.integration.rate_limiter import SlidingWindowRateLimiter
@@ -33,3 +33,4 @@ async def test_rate_limit_is_scoped_per_event_type(redis):
     b = await limiter.allow("acme", "achievement.awarded")
     assert a.allowed is True
     assert b.allowed is True
+

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -101,3 +101,4 @@ async def test_wallet_transaction_to_analytics_report(monkeypatch, integration_p
 
     published_topics = [call.args[0] for call in producer.publish.await_args_list]
     assert "analytics.report" in published_topics
+

@@ -1,4 +1,4 @@
-"""Canonical Kafka topic names owned or consumed by Pod Delta."""
+﻿"""Canonical Kafka topic names owned or consumed by Pod Delta."""
 
 from enum import Enum
 
@@ -27,3 +27,4 @@ CONSUMER_GROUP_ID = "pod-delta-integration"
 
 def dead_letter_topic(topic: str) -> str:
     return f"{topic}.dlt"
+

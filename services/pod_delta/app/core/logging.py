@@ -1,4 +1,4 @@
-"""Structured logging helpers (structlog)."""
+﻿"""Structured logging helpers (structlog)."""
 
 import logging
 import sys
@@ -61,3 +61,4 @@ def get_logger(
     if bindings:
         return logger.bind(**bindings)
     return logger
+

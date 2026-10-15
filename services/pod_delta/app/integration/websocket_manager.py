@@ -1,4 +1,4 @@
-"""Tenant-scoped WebSocket manager with Redis pub/sub for multi-instance fan-out."""
+﻿"""Tenant-scoped WebSocket manager with Redis pub/sub for multi-instance fan-out."""
 
 from __future__ import annotations
 
@@ -101,4 +101,5 @@ class WebSocketManager:
 
     def local_connection_count(self) -> int:
         return sum(len(sockets) for sockets in self._connections.values())
+
 

@@ -1,4 +1,4 @@
-"""Resilience score cache: score:{tenant_id} with 1h TTL."""
+﻿"""Resilience score cache: score:{tenant_id} with 1h TTL."""
 
 from __future__ import annotations
 
@@ -41,3 +41,4 @@ class ScoreCache:
 
     async def delete(self, tenant_id: str) -> None:
         await self.redis.delete(self.key(tenant_id))
+

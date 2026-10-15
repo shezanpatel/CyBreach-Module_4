@@ -1,4 +1,4 @@
-"""Prints every token needed for the Integration + Security tests.
+﻿"""Prints every token needed for the Integration + Security tests.
 Run:  python make_test_tokens.py
 Then copy each line into the top of the SECURITY section in api_requests.http.
 """
@@ -35,3 +35,4 @@ tokens = {
 
 for name, value in tokens.items():
     print(f"@{name} = {value}")
+

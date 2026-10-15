@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
@@ -52,3 +52,4 @@ async def test_websocket_connect_session_and_broadcast(redis):
     assert any(item.get("type") == "score_update" for item in ws.sent)
     await manager.disconnect("tenant-ws", connection_id)
     await manager.stop()
+

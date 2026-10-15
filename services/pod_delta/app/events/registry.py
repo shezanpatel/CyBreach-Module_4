@@ -1,4 +1,4 @@
-"""Topic → model registry and JSON parsing."""
+﻿"""Topic → model registry and JSON parsing."""
 
 from typing import Any, Type
 
@@ -49,3 +49,4 @@ def parse_event(topic: str, payload: dict[str, Any]) -> Any:
         return model.model_validate(data)
     except ValidationError as exc:
         raise EventValidationError(topic, exc.errors()) from exc
+

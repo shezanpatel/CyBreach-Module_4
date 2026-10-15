@@ -1,4 +1,4 @@
-"""Simple async circuit breaker for Kafka / Redis side effects."""
+﻿"""Simple async circuit breaker for Kafka / Redis side effects."""
 
 from __future__ import annotations
 
@@ -54,3 +54,4 @@ class CircuitBreaker:
         self.failures = 0
         self.state = CircuitState.CLOSED
         return result
+

@@ -1,4 +1,4 @@
-"""Async Redis client for rate limits, score cache, and WebSocket fan-out."""
+﻿"""Async Redis client for rate limits, score cache, and WebSocket fan-out."""
 
 from __future__ import annotations
 
@@ -36,4 +36,5 @@ async def close_redis() -> None:
 def set_redis_for_tests(client: Redis | None) -> None:
     global _redis
     _redis = client
+
 

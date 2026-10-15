@@ -1,4 +1,4 @@
-services:
+﻿services:
   redis:
     image: redis:7-alpine
     ports:
@@ -111,3 +111,4 @@ services:
 networks:
   default:
     name: cybreach-delta
+

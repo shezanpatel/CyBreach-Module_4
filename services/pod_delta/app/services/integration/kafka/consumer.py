@@ -1,4 +1,4 @@
-"""Robust Kafka consumer for Pod Delta consume topics."""
+﻿"""Robust Kafka consumer for Pod Delta consume topics."""
 
 from __future__ import annotations
 
@@ -174,3 +174,4 @@ class KafkaConsumerService:
             except Exception:  # noqa: BLE001
                 logger.warning("lag_report_failed")
             await asyncio.sleep(15)
+

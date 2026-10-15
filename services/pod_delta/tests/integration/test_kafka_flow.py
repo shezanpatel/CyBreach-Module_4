@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -80,3 +80,4 @@ async def test_duplicate_event_is_skipped(consumer, redis):
     await consumer._process_message(msg)
     await consumer._process_message(msg)
     assert consumer.handlers.score_flow.handle.await_count == 1
+

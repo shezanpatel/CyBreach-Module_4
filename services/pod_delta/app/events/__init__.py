@@ -1,4 +1,4 @@
-"""Kafka event contracts for Pod Delta integration."""
+﻿"""Kafka event contracts for Pod Delta integration."""
 
 from app.events.consumed import (
     AchievementAwardedEvent,
@@ -33,3 +33,4 @@ __all__ = [
     "ScoreDisplayedEvent",
     "WalletTransactionEvent",
 ]
+

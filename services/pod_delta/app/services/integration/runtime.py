@@ -1,4 +1,4 @@
-"""Process-wide integration runtime (producer, consumer, ws manager)."""
+﻿"""Process-wide integration runtime (producer, consumer, ws manager)."""
 
 from __future__ import annotations
 
@@ -110,3 +110,4 @@ async def stop_integration() -> None:
     if _ws_manager:
         await _ws_manager.stop()
         _ws_manager = None
+
