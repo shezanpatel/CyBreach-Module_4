@@ -1,4 +1,4 @@
-"""PG-20 improvement-view engine.
+﻿"""PG-20 improvement-view engine.
 
 Calculates:
     Delta Score = Current Score - Snapshot Score

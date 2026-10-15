@@ -1,4 +1,4 @@
-# CyBreach Module 4 — Pod Gamma Service
+﻿# CyBreach Module 4 - Pod Gamma Service
 
 Pod Gamma delivers real-time scoring analytics, high-velocity leaderboard aggregation, cohort benchmarking, user activity streaks, and badge achievement verification for the CyBreach platform.
 
@@ -35,7 +35,7 @@ The system combines an in-memory Redis sorted-set engine for sub-millisecond ran
 * Real-Time Leaderboard Engine (Redis): Tracks absolute and relative rankings globally and across dimensions (governance, identity, threat, cloud).
 * Velocity & Improvement Tracking: Computes delta scores against historical snapshots to rank organizations by improvement rate.
 * Benchmarking & Cohort Comparison: Compares tenant performance against peer cohorts segmented by industry sector and company size.
-* Activity & Streak Engine: Implements a strict activity window (completions under 24 hours are debounced, 24–48 hours increment the streak, and >48 hours reset the streak).
+* Activity & Streak Engine: Implements a strict activity window (completions under 24 hours are debounced, 24-48 hours increment the streak, and >48 hours reset the streak).
 * Verifiable Badge Awards: Unlocks milestone achievements and persists audit proof via structured evidence_ref tokens.
 * Resilience & Rate Limiting: Sliding-window rate limiters per tenant with graceful fallback handling.
 
@@ -257,23 +257,24 @@ pytest -v --cov=app --cov-report=term-missing
 
 ### Health & Metrics
 
-* GET /health — Liveness and readiness probe
-* GET /metrics — Prometheus and operational runtime metrics
+* GET /health - Liveness and readiness probe
+* GET /metrics - Prometheus and operational runtime metrics
 
 ### Leaderboard & Benchmarking (Redis Core)
 
-* GET /api/v1/leaderboard/global — Global absolute rankings
-* GET /api/v1/leaderboard/{dimension} — Absolute rankings by category dimension
-* POST /api/v1/leaderboard/score — Update or increment tenant score
-* GET /api/v1/leaderboard/rank/{tenant_id} — Fetch current rank and score for a tenant
-* GET /api/v1/leaderboard/improvement/global — Top tenant velocity rankings
-* GET /api/v1/leaderboard/improvement/{dimension} — Top velocity rankings for a dimension
-* GET /api/v1/benchmark/compare — Cohort peer comparison analysis
+* GET /api/v1/leaderboard/global - Global absolute rankings
+* GET /api/v1/leaderboard/{dimension} - Absolute rankings by category dimension
+* POST /api/v1/leaderboard/score - Update or increment tenant score
+* GET /api/v1/leaderboard/rank/{tenant_id} - Fetch current rank and score for a tenant
+* GET /api/v1/leaderboard/improvement/global - Top tenant velocity rankings
+* GET /api/v1/leaderboard/improvement/{dimension} - Top velocity rankings for a dimension
+* GET /api/v1/benchmark/compare - Cohort peer comparison analysis
 
 ### Analytics, Streaks & Gamification (SQL Core)
 
-* POST /api/v1/analytics — Ingest streaming analytics payload
-* POST /api/v1/streak/verify — Evaluate activity timestamps and update consecutive streaks
-* GET /user/{user_id}/streak — Retrieve current streak count and last active timestamp
-* GET /user/{user_id}/badges — Retrieve unlocked badges for a user
-* POST /api/v1/achievements/check — Process achievement criteria with evidence_ref validation
+* POST /api/v1/analytics - Ingest streaming analytics payload
+* POST /api/v1/streak/verify - Evaluate activity timestamps and update consecutive streaks
+* GET /user/{user_id}/streak - Retrieve current streak count and last active timestamp
+* GET /user/{user_id}/badges - Retrieve unlocked badges for a user
+* POST /api/v1/achievements/check - Process achievement criteria with evidence_ref validation
+

@@ -1,4 +1,4 @@
-"""Leaderboard business logic backed by Redis Sorted Sets (ZSET)."""
+﻿"""Leaderboard business logic backed by Redis Sorted Sets (ZSET)."""
 
 from __future__ import annotations
 

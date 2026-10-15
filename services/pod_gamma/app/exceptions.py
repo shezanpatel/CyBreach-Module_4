@@ -1,4 +1,4 @@
-"""Custom domain exceptions for the leaderboard service."""
+﻿"""Custom domain exceptions for the leaderboard service."""
 
 from typing import Any
 
@@ -33,3 +33,4 @@ class NegativeScoreError(LeaderboardError):
 
 class InvalidTenantMetadataError(LeaderboardError):
     """Raised when tenant ID or metadata is invalid."""
+

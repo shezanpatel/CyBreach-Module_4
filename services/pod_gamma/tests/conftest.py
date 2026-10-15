@@ -1,4 +1,4 @@
-"""Pytest fixtures for leaderboard integration tests."""
+﻿"""Pytest fixtures for leaderboard integration tests."""
 
 from __future__ import annotations
 
@@ -57,3 +57,4 @@ def client(
 
     app.dependency_overrides.clear()
     reset_redis_client(client=None, pool=None)
+

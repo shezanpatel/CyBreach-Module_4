@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+﻿from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 from app.models.schemas import PlayerEntry
@@ -24,3 +24,4 @@ def test_get_global_leaderboard_success():
 def test_get_leaderboard_invalid_dimension():
     res = client.get("/leaderboard/invalid_dim")
     assert res.status_code == 400
+

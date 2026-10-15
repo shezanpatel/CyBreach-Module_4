@@ -1,4 +1,4 @@
-"""Comprehensive tests for the Redis Leaderboard Engine."""
+﻿"""Comprehensive tests for the Redis Leaderboard Engine."""
 
 from __future__ import annotations
 

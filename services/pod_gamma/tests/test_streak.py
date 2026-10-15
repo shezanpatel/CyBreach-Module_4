@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+﻿from datetime import datetime, timedelta
 
 from app.models import UserProfile
 from app.streak import update_streak

@@ -1,4 +1,4 @@
-"""Pydantic request and response schemas for the leaderboard API."""
+﻿"""Pydantic request and response schemas for the leaderboard API."""
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -154,3 +154,4 @@ class ImprovementResponse(BaseModel):
     total_tenants: int
     limit: int
     entries: list[ImprovementEntry]
+

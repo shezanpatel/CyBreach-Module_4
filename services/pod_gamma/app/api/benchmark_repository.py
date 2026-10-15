@@ -1,4 +1,4 @@
-BENCHMARK_DATA = [
+﻿BENCHMARK_DATA = [
     {
         "industry": "Technology",
         "region": "West",

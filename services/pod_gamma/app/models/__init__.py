@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -48,3 +48,4 @@ class LeaderboardResponse(BaseModel):
     entries: list[PlayerEntry]
 
 from app.models.schemas import *
+

@@ -1,4 +1,4 @@
-"""Structured logging configuration for the application."""
+﻿"""Structured logging configuration for the application."""
 
 import logging
 import sys
@@ -35,3 +35,4 @@ def setup_logging(level: LogLevel = "INFO") -> logging.Logger:
 def get_logger(name: str) -> logging.Logger:
     """Return a child logger under the application namespace."""
     return logging.getLogger(f"redis_leaderboard.{name}")
+

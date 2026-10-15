@@ -1,4 +1,4 @@
-"""Standalone script to verify Redis ZSET leaderboard operations.
+﻿"""Standalone script to verify Redis ZSET leaderboard operations.
 
 Connects to a live Redis instance and validates all core commands.
 

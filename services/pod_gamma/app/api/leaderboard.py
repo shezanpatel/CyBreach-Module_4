@@ -1,4 +1,4 @@
-"""FastAPI route handlers for leaderboard operations."""
+﻿"""FastAPI route handlers for leaderboard operations."""
 from __future__ import annotations
 from app.services import improvement_service
 from app.services.improvement_service import ImprovementService
@@ -274,3 +274,4 @@ def get_dimension_leaderboard(
         limit=limit,
         entries=entries,
     )
+

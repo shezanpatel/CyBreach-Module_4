@@ -1,4 +1,4 @@
-"""Redis connection pool management with singleton pattern."""
+﻿"""Redis connection pool management with singleton pattern."""
 
 from __future__ import annotations
 

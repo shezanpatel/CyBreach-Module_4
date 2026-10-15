@@ -1,4 +1,4 @@
-"""Tenant data-contract validation and Redis key helpers."""
+﻿"""Tenant data-contract validation and Redis key helpers."""
 
 from __future__ import annotations
 

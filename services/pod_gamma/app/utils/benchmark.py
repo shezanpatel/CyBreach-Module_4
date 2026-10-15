@@ -1,4 +1,4 @@
-"""Performance benchmark for leaderboard operations.
+﻿"""Performance benchmark for leaderboard operations.
 
 Generates N fake users with random scores and measures latency and
 throughput for single inserts, bulk inserts, rank lookups, concurrent

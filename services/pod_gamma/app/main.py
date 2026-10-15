@@ -1,4 +1,4 @@
-"""FastAPI application entry point with lifespan management."""
+﻿"""FastAPI application entry point with lifespan management."""
 # ==========================================================
 # SECURITY FEATURE (TEMPORARILY DISABLED)
 #
@@ -438,3 +438,4 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
 
 app = create_app()
+

@@ -1,4 +1,4 @@
-# Redis Module Integration Guide
+﻿# Redis Module Integration Guide
 
 ## Purpose
 
