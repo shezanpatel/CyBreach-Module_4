@@ -1,0 +1,79 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-leaderboard-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./database/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: gamma-postgres
+    environment:
+      POSTGRES_DB: leaderboard
+      POSTGRES_USER: leaderboard_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/002_create_leaderboard_snapshot.sql:/docker-entrypoint-initdb.d/002_create_leaderboard_snapshot.sql:ro
+      - ./database/003_create_benchmark_aggregate.sql:/docker-entrypoint-initdb.d/003_create_benchmark_aggregate.sql:ro
+      - ./database/004_create_badge_awards.sql:/docker-entrypoint-initdb.d/004_create_badge_awards.sql:ro
+      - ./database/005_seed_benchmark_aggregate.sql:/docker-entrypoint-initdb.d/005_seed_benchmark_aggregate.sql:ro
+      - ./database/006_create_benchmark_historical.sql:/docker-entrypoint-initdb.d/006_create_benchmark_historical.sql:ro
+      - ./database/007_seed_benchmark_historical.sql:/docker-entrypoint-initdb.d/007_seed_benchmark_historical.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leaderboard_user -d leaderboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: redis-leaderboard-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_ENV: production
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: leaderboard
+      POSTGRES_USER: leaderboard_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
