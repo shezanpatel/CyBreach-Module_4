@@ -3,7 +3,7 @@
   "title": "WMI Lateral Movement and Execution",
   "description": "Tests telemetry detection and alert generation when adversaries utilize Windows Management Instrumentation for remote command execution.",
   "playbook_hashes": [
-    "sha256:3344556677889900aabbccddeeff0011223344556677889900aabbccddeeff1122"
+    "sha256:7000f0b7c2640012cf0f81396d5d75faf21dbac3847286ebc2737837691b4ecd"
   ],
   "tier": "quick_scan",
   "regions": ["global", "apac", "eu", "na"],

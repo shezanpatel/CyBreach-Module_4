@@ -16,13 +16,23 @@ def test_zero_em_dashes_in_repository():
     # File extensions to scan
     extensions = {".py", ".md", ".json", ".yaml", ".yml", ".txt"}
     # Ignore git directory and cache
-    ignored_parts = {".git", ".pytest_cache", "__pycache__", ".venv", "venv"}
+    ignored_parts = {
+        ".git",
+        ".pytest_cache",
+        "__pycache__",
+        ".venv",
+        "node_modules",
+        "venv",
+    }
 
     violations = []
 
     for file_path in root.rglob("*"):
         if file_path.is_file() and file_path.suffix in extensions:
-            if any(part in ignored_parts for part in file_path.parts):
+            if any(
+                part in ignored_parts or part.startswith(".venv")
+                for part in file_path.parts
+            ):
                 continue
 
             try:

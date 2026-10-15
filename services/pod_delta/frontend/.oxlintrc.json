@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "oxc"],
   "rules": {
@@ -6,4 +6,3 @@
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
   }
 }
-

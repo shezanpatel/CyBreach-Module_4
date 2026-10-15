@@ -6,7 +6,36 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db.redis_client import get_redis
+from app.exceptions import InvalidTenantMetadataError
 from app.services.improvement_service import ImprovementService
+from app.services.leaderboard_service import LeaderboardService
+from app.tenant_contract import tenant_members_key, tenant_metadata_key
+
+
+def _store_opted_in_improvement(
+    service: ImprovementService,
+    *,
+    tenant_id: str,
+    current_score: float,
+    snapshot_score: float,
+    industry: str,
+    region: str,
+    size: str,
+) -> float:
+    LeaderboardService(redis_client=service.redis).opt_in_tenant(
+        tenant_id=tenant_id,
+        industry=industry,
+        region=region,
+        size=size,
+    )
+    return service.store_improvement(
+        tenant_id=tenant_id,
+        current_score=current_score,
+        snapshot_score=snapshot_score,
+        industry=industry,
+        region=region,
+        size=size,
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -58,7 +87,8 @@ class TestImprovementRedis:
 
     def test_store_improvement(self,) -> None:
         service = ImprovementService()
-        delta = service.store_improvement(
+        delta = _store_opted_in_improvement(
+            service,
             tenant_id="CORP-001",
             current_score=1700,
             snapshot_score=1500,
@@ -89,10 +119,27 @@ class TestImprovementRedis:
             "CORP-001",
         ) == 200
 
+    def test_store_improvement_requires_tenant_consent(self) -> None:
+        service = ImprovementService()
+        service.redis.delete(
+            tenant_metadata_key("CORP-050"),
+            tenant_members_key("CORP-050"),
+        )
+        with pytest.raises(InvalidTenantMetadataError, match="must be opted in"):
+            service.store_improvement(
+                tenant_id="CORP-050",
+                current_score=1700,
+                snapshot_score=1500,
+                industry="technology",
+                region="apac",
+                size="51-500",
+            )
+
     def test_improvement_ranking(self) -> None:
         service = ImprovementService()
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-001",
             current_score=1700,
             snapshot_score=1500,
@@ -101,7 +148,8 @@ class TestImprovementRedis:
             size="51-500",
         )
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-002",
             current_score=1900,
             snapshot_score=1500,
@@ -110,7 +158,8 @@ class TestImprovementRedis:
             size="501-5000",
         )
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-003",
             current_score=1550,
             snapshot_score=1500,
@@ -141,7 +190,8 @@ class TestImprovementRedis:
     def test_industry_filter(self) -> None:
         service = ImprovementService()
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-001",
             current_score=1700,
             snapshot_score=1500,
@@ -150,7 +200,8 @@ class TestImprovementRedis:
             size="51-500",
         )
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-002",
             current_score=1900,
             snapshot_score=1500,
@@ -179,7 +230,8 @@ class TestImprovementAPI:
     ) -> None:
         service = ImprovementService()
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-001",
             current_score=1700,
             snapshot_score=1500,
@@ -212,7 +264,8 @@ class TestImprovementAPI:
     ) -> None:
         service = ImprovementService()
 
-        service.store_improvement(
+        _store_opted_in_improvement(
+            service,
             tenant_id="CORP-001",
             current_score=1700,
             snapshot_score=1500,

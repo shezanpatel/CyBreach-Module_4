@@ -8,14 +8,23 @@ and stores tenant improvement rankings in Redis sorted sets.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
+from redis.exceptions import WatchError
+
 from app.db.redis_client import get_redis
+from app.exceptions import InvalidScoreError, InvalidTenantMetadataError
 from app.tenant_contract import (
     improvement_global_key,
     improvement_industry_key,
     improvement_region_key,
     improvement_size_key,
+    tenant_metadata_key,
+    validate_industry,
+    validate_region,
+    validate_size,
+    validate_tenant_id,
 )
 
 
@@ -44,31 +53,58 @@ class ImprovementService:
     ) -> float:
         """Calculate and store a tenant's improvement score."""
 
+        try:
+            tenant_id = validate_tenant_id(tenant_id)
+            industry = validate_industry(industry)
+            region = validate_region(region)
+            size = validate_size(size)
+        except ValueError as exc:
+            raise InvalidTenantMetadataError(str(exc)) from exc
+
+        if not math.isfinite(current_score) or not math.isfinite(snapshot_score):
+            raise InvalidScoreError("Scores must be finite numbers")
+
         delta_score = self.calculate_delta(
             current_score=current_score,
             snapshot_score=snapshot_score,
         )
 
-        # Redis ZSETs use the delta as the ranking score.
-        self.redis.zadd(
-            improvement_global_key(),
-            {tenant_id: delta_score},
-        )
-
-        self.redis.zadd(
-            improvement_industry_key(industry),
-            {tenant_id: delta_score},
-        )
-
-        self.redis.zadd(
-            improvement_region_key(region),
-            {tenant_id: delta_score},
-        )
-
-        self.redis.zadd(
-            improvement_size_key(size),
-            {tenant_id: delta_score},
-        )
+        metadata_key = tenant_metadata_key(tenant_id)
+        metadata = {
+            "industry": industry,
+            "region": region,
+            "size": size,
+        }
+        pipe = self.redis.pipeline()
+        try:
+            pipe.watch(metadata_key)
+            if pipe.hgetall(metadata_key) != metadata:
+                raise InvalidTenantMetadataError(
+                    "Tenant must be opted in with matching metadata before storing improvement",
+                    details={"tenant_id": tenant_id},
+                )
+            pipe.multi()
+            pipe.zadd(improvement_global_key(), {tenant_id: delta_score})
+            pipe.zadd(
+                improvement_industry_key(industry),
+                {tenant_id: delta_score},
+            )
+            pipe.zadd(
+                improvement_region_key(region),
+                {tenant_id: delta_score},
+            )
+            pipe.zadd(
+                improvement_size_key(size),
+                {tenant_id: delta_score},
+            )
+            pipe.execute()
+        except WatchError as exc:
+            raise InvalidTenantMetadataError(
+                "Tenant consent changed while storing improvement; retry",
+                details={"tenant_id": tenant_id},
+            ) from exc
+        finally:
+            pipe.reset()
 
         return delta_score
 

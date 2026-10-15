@@ -14,7 +14,12 @@ from app.tenant_contract import (
     industry_key,
     region_key,
     size_key,
+    improvement_global_key,
+    improvement_industry_key,
+    improvement_region_key,
+    improvement_size_key,
     tenant_members_key,
+    tenant_metadata_key,
 )
 
 class TestSetScore:
@@ -178,15 +183,57 @@ class TestDeleteUser:
 class TestResetLeaderboard:
     """Tests for DELETE /leaderboard."""
 
-    def test_reset_leaderboard(self, client: TestClient) -> None:
+    def test_reset_leaderboard(
+        self,
+        client: TestClient,
+        service: LeaderboardService,
+    ) -> None:
         client.post("/score", json={"username": "p1", "score": 100})
         client.post("/score", json={"username": "p2", "score": 200})
+        client.post(
+            "/opt-in",
+            json={
+                "tenant_id": "CORP-001",
+                "industry": "technology",
+                "region": "europe",
+                "size": "1-50",
+            },
+        )
+        client.post(
+            "/score",
+            json={
+                "username": "tenant_reset",
+                "score": 300,
+                "tenant_id": "CORP-001",
+                "industry": "technology",
+                "region": "europe",
+                "size": "1-50",
+            },
+        )
+        service.redis.zadd(improvement_global_key(), {"CORP-001": 25})
+        service.redis.zadd(
+            improvement_industry_key("technology"),
+            {"CORP-001": 25},
+        )
 
         response = client.delete("/leaderboard")
         assert response.status_code == 200
 
         leaderboard = client.get("/leaderboard").json()
         assert leaderboard["total_players"] == 0
+        assert client.get("/leaderboard/industry?industry=technology").json()[
+            "total_players"
+        ] == 0
+        assert client.get("/leaderboard/region?region=europe").json()[
+            "total_players"
+        ] == 0
+        assert client.get("/leaderboard/size?size_band=1-50").json()[
+            "total_players"
+        ] == 0
+        assert service.redis.zscore(improvement_global_key(), "CORP-001") is None
+        assert service.redis.zscore(
+            improvement_industry_key("technology"), "CORP-001"
+        ) is None
 
 
 class TestHealthAndMetrics:
@@ -274,10 +321,20 @@ class TestServiceEdgeCases:
 class TestTenantScore:
     """Tests for tenant-aware leaderboard updates."""
 
+    @staticmethod
+    def _opt_in(service: LeaderboardService) -> None:
+        service.opt_in_tenant(
+            tenant_id="CORP-001",
+            industry="technology",
+            region="europe",
+            size="1-50",
+        )
+
     def test_updates_all_absolute_leaderboards(
         self,
         service: LeaderboardService,
     ) -> None:
+        self._opt_in(service)
         service.set_tenant_score(
             username="tenant_user",
             score=1500,
@@ -302,6 +359,7 @@ class TestTenantScore:
         self,
         service: LeaderboardService,
     ) -> None:
+        self._opt_in(service)
         service.set_tenant_score(
             username="tenant_user",
             score=1500,
@@ -315,10 +373,116 @@ class TestTenantScore:
             tenant_members_key("CORP-001"), "tenant_user"
         )
 
+    def test_opt_in_records_validated_tenant_metadata(
+        self,
+        client: TestClient,
+        service: LeaderboardService,
+    ) -> None:
+        response = client.post(
+            "/opt-in",
+            json={
+                "tenant_id": "CORP-001",
+                "industry": "Technology",
+                "region": "Europe",
+                "size": "1-50",
+            },
+        )
+
+        assert response.status_code == 200
+        assert service.redis.hgetall(tenant_metadata_key("CORP-001")) == {
+            "industry": "technology",
+            "region": "europe",
+            "size": "1-50",
+        }
+
+    def test_opt_out_purges_tenant_from_all_rankings(
+        self,
+        client: TestClient,
+        service: LeaderboardService,
+    ) -> None:
+        self._opt_in(service)
+        service.set_tenant_score(
+            username="opt_out_user",
+            score=1500,
+            tenant_id="CORP-001",
+            industry="technology",
+            region="europe",
+            size="1-50",
+        )
+        service.redis.zadd(improvement_global_key(), {"CORP-001": 25})
+        service.redis.zadd(
+            improvement_industry_key("technology"),
+            {"CORP-001": 25},
+        )
+        service.redis.zadd(
+            improvement_region_key("europe"),
+            {"CORP-001": 25},
+        )
+        service.redis.zadd(
+            improvement_size_key("1-50"),
+            {"CORP-001": 25},
+        )
+
+        response = client.post("/opt-out", json={"tenant_id": "CORP-001"})
+
+        assert response.status_code == 200
+        assert service.redis.zscore(service.key, "opt_out_user") is None
+        assert service.redis.zscore(
+            industry_key("technology"), "opt_out_user"
+        ) is None
+        assert service.redis.zscore(region_key("europe"), "opt_out_user") is None
+        assert service.redis.zscore(size_key("1-50"), "opt_out_user") is None
+        assert not service.redis.exists(tenant_members_key("CORP-001"))
+        assert not service.redis.exists(tenant_metadata_key("CORP-001"))
+        assert service.redis.zscore(improvement_global_key(), "CORP-001") is None
+        assert service.redis.zscore(
+            improvement_industry_key("technology"), "CORP-001"
+        ) is None
+        assert service.redis.zscore(
+            improvement_region_key("europe"), "CORP-001"
+        ) is None
+        assert service.redis.zscore(
+            improvement_size_key("1-50"), "CORP-001"
+        ) is None
+        with pytest.raises(InvalidTenantMetadataError, match="must opt in"):
+            service.set_tenant_score(
+                username="opt_out_user",
+                score=1700,
+                tenant_id="CORP-001",
+                industry="technology",
+                region="europe",
+                size="1-50",
+            )
+
+    def test_delete_user_cleans_tenant_dimension_indexes(
+        self,
+        service: LeaderboardService,
+    ) -> None:
+        self._opt_in(service)
+        service.set_tenant_score(
+            username="tenant_delete",
+            score=1500,
+            tenant_id="CORP-001",
+            industry="technology",
+            region="europe",
+            size="1-50",
+        )
+
+        assert service.delete_user("tenant_delete")
+        assert service.redis.zscore(
+            industry_key("technology"), "tenant_delete"
+        ) is None
+        assert service.redis.zscore(region_key("europe"), "tenant_delete") is None
+        assert service.redis.zscore(size_key("1-50"), "tenant_delete") is None
+        assert not service.redis.sismember(
+            tenant_members_key("CORP-001"), "tenant_delete"
+        )
+
     def test_updates_existing_tenant_score(
         self,
         service: LeaderboardService,
     ) -> None:
+        self._opt_in(service)
         service.set_tenant_score(
             username="tenant_user",
             score=1000,
@@ -342,6 +506,137 @@ class TestTenantScore:
             industry_key("technology"), "tenant_user"
         ) == 2000
 
+    def test_global_mutations_cannot_desynchronize_tenant_rankings(
+        self,
+        service: LeaderboardService,
+    ) -> None:
+        self._opt_in(service)
+        service.set_tenant_score(
+            username="protected_user",
+            score=1500,
+            tenant_id="CORP-001",
+            industry="technology",
+            region="europe",
+            size="1-50",
+        )
+
+        with pytest.raises(InvalidTenantMetadataError, match="must be updated"):
+            service.set_score("protected_user", 1800)
+        with pytest.raises(InvalidTenantMetadataError, match="must be updated"):
+            service.increment_score("protected_user", 100)
+        with pytest.raises(InvalidTenantMetadataError, match="must be updated"):
+            service.set_scores_bulk({"protected_user": 2000})
+
+        assert service.redis.zscore(service.key, "protected_user") == 1500
+        assert service.redis.zscore(
+            industry_key("technology"), "protected_user"
+        ) == 1500
+        assert service.redis.zscore(
+            region_key("europe"), "protected_user"
+        ) == 1500
+        assert service.redis.zscore(
+            size_key("1-50"), "protected_user"
+        ) == 1500
+
+    def test_username_cannot_be_associated_with_multiple_tenants(
+        self,
+        service: LeaderboardService,
+    ) -> None:
+        self._opt_in(service)
+        service.opt_in_tenant(
+            tenant_id="CORP-002",
+            industry="finance",
+            region="europe",
+            size="1-50",
+        )
+        service.set_tenant_score(
+            username="single_tenant_user",
+            score=1500,
+            tenant_id="CORP-001",
+            industry="technology",
+            region="europe",
+            size="1-50",
+        )
+
+        with pytest.raises(InvalidTenantMetadataError, match="another tenant"):
+            service.set_tenant_score(
+                username="single_tenant_user",
+                score=1600,
+                tenant_id="CORP-002",
+                industry="finance",
+                region="europe",
+                size="1-50",
+            )
+
+    def test_opt_in_rejects_metadata_change_with_active_members(
+        self,
+        service: LeaderboardService,
+    ) -> None:
+        self._opt_in(service)
+        service.set_tenant_score(
+            username="metadata_user",
+            score=1500,
+            tenant_id="CORP-001",
+            industry="technology",
+            region="europe",
+            size="1-50",
+        )
+
+        with pytest.raises(InvalidTenantMetadataError, match="cannot change"):
+            service.opt_in_tenant(
+                tenant_id="CORP-001",
+                industry="finance",
+                region="europe",
+                size="1-50",
+            )
+
+    def test_opt_in_rejects_metadata_change_with_improvement_scores(
+        self,
+        service: LeaderboardService,
+    ) -> None:
+        self._opt_in(service)
+        service.redis.zadd(improvement_global_key(), {"CORP-001": 25})
+
+        with pytest.raises(InvalidTenantMetadataError, match="cannot change"):
+            service.opt_in_tenant(
+                tenant_id="CORP-001",
+                industry="finance",
+                region="europe",
+                size="1-50",
+            )
+
+    def test_tenant_score_requires_opt_in_and_matching_metadata(
+        self,
+        client: TestClient,
+    ) -> None:
+        payload = {
+            "username": "consent_user",
+            "score": 100,
+            "tenant_id": "CORP-001",
+            "industry": "technology",
+            "region": "europe",
+            "size": "1-50",
+        }
+        response = client.post("/score", json=payload)
+        assert response.status_code == 422
+        assert response.json()["error"] == "Tenant must opt in before submitting scores"
+
+        client.post(
+            "/opt-in",
+            json={
+                "tenant_id": "CORP-001",
+                "industry": "technology",
+                "region": "europe",
+                "size": "1-50",
+            },
+        )
+        payload["industry"] = "finance"
+        response = client.post("/score", json=payload)
+        assert response.status_code == 422
+        assert response.json()["error"] == (
+            "Score metadata must match the tenant's opted-in metadata"
+        )
+
     def test_rejects_invalid_tenant_id(
         self,
         service: LeaderboardService,
@@ -355,3 +650,71 @@ class TestTenantScore:
                 region="europe",
                 size="1-50",
             )
+
+    def test_dimension_routes_read_the_requested_metadata_index(
+        self,
+        client: TestClient,
+    ) -> None:
+        client.post(
+            "/opt-in",
+            json={
+                "tenant_id": "CORP-001",
+                "industry": "technology",
+                "region": "europe",
+                "size": "1-50",
+            },
+        )
+        client.post(
+            "/score",
+            json={
+                "username": "tenant_user",
+                "score": 1500,
+                "tenant_id": "CORP-001",
+                "industry": "technology",
+                "region": "europe",
+                "size": "1-50",
+            },
+        )
+        client.post("/score", json={"username": "global_only", "score": 2000})
+
+        cases = (
+            ("/leaderboard/industry?industry=technology", "industry"),
+            ("/leaderboard/region?region=europe", "region"),
+            ("/leaderboard/size?size_band=1-50", "size"),
+        )
+        for path, dimension in cases:
+            response = client.get(path)
+            assert response.status_code == 200
+            result = response.json()
+            assert result["dimension"] == dimension
+            assert result["total_players"] == 1
+            assert [entry["username"] for entry in result["entries"]] == ["tenant_user"]
+
+    def test_dimension_route_requires_its_filter_value(
+        self,
+        client: TestClient,
+    ) -> None:
+        response = client.get("/leaderboard/industry")
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "industry value is required"
+
+    def test_dimension_route_rejects_invalid_metadata_filter(
+        self,
+        client: TestClient,
+    ) -> None:
+        response = client.get("/leaderboard/industry?industry=unknown")
+
+        assert response.status_code == 400
+        assert "industry must be one of" in response.json()["detail"]
+
+    def test_dimension_route_directs_improvement_view_to_its_endpoint(
+        self,
+        client: TestClient,
+    ) -> None:
+        response = client.get("/leaderboard/global?view=improvement")
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "Use /improvement?dimension=... for improvement rankings"
+        )

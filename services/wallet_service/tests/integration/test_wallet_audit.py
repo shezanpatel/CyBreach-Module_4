@@ -27,25 +27,75 @@ def test_wallet_audit_history_pagination_with_10000_plus_entries():
     user_id = f"audit_10k_{uuid4().hex}"
 
     try:
-        for index in range(5001):
-            ledger = WalletLedger(
-                id=uuid4(),
-                user_id=user_id,
-                transaction_type="CREDIT",
-                currency="USD",
-                amount=Decimal("1.00"),
-                reference_id=f"audit-ref-{index}-{uuid4().hex}",
-                module_source="mod4",
-            )
-
-            create_ledger_entry(
-                db=db,
-                ledger=ledger,
-            )
-
-            if (index + 1) % 500 == 0:
-                db.commit()
-
+        db.execute(
+            text(
+                """
+                WITH inserted_transactions AS (
+                    INSERT INTO wallet_ledger (
+                        id,
+                        user_id,
+                        transaction_type,
+                        currency,
+                        amount,
+                        reference_id,
+                        module_source,
+                        created_at
+                    )
+                    SELECT
+                        gen_random_uuid(),
+                        :user_id,
+                        'CREDIT',
+                        'USD',
+                        1.00,
+                        'audit-ref-' || sequence || '-' || gen_random_uuid(),
+                        'mod4',
+                        now()
+                    FROM generate_series(1, 5001) AS sequence
+                    RETURNING
+                        id,
+                        user_id,
+                        transaction_type,
+                        currency,
+                        amount,
+                        reference_id,
+                        module_source,
+                        created_at
+                )
+                INSERT INTO wallet_ledger_entries (
+                    id,
+                    transaction_id,
+                    user_id,
+                    transaction_type,
+                    currency,
+                    entry_type,
+                    account_code,
+                    amount,
+                    reference_id,
+                    module_source,
+                    created_at
+                )
+                SELECT
+                    gen_random_uuid(),
+                    tx.id,
+                    tx.user_id,
+                    tx.transaction_type,
+                    tx.currency,
+                    entry.entry_type,
+                    entry.account_code,
+                    tx.amount,
+                    tx.reference_id,
+                    tx.module_source,
+                    tx.created_at
+                FROM inserted_transactions AS tx
+                CROSS JOIN (
+                    VALUES
+                        ('DEBIT', 'CREDIT_SOURCE'),
+                        ('CREDIT', 'WALLET')
+                ) AS entry(entry_type, account_code)
+                """
+            ),
+            {"user_id": user_id},
+        )
         db.commit()
 
     finally:
@@ -173,4 +223,3 @@ def test_wallet_ledger_entry_is_append_only():
 
     finally:
         db.close()
-

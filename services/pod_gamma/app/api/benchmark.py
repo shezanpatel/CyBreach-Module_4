@@ -1,6 +1,3 @@
-﻿import math
-import random
-
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -8,6 +5,7 @@ from app.api.benchmark_repository import (
     get_benchmark_aggregate,
     get_benchmark_history,
     get_global_benchmark,
+    get_available_benchmark_cohorts,
 )
 
 router = APIRouter(
@@ -23,12 +21,8 @@ router = APIRouter(
 # PG-27
 MIN_PEER_GROUP_SIZE = 10
 
-# PG-26
-EPSILON = 1.0
-SENSITIVITY = 100.0
-
 # Section 2 / Section 11.7
-DEMO_DATA_LABEL = "seeded demo baseline"
+DEMO_DATA_LABEL = "seeded synthetic demo baseline - no real/private peer data"
 
 
 # ============================================================
@@ -66,7 +60,7 @@ class BenchmarkResult(BaseModel):
     Flat BenchmarkResult contract required by Pod Delta.
 
     Synthetic benchmark data is explicitly labelled as
-    'seeded demo baseline'.
+    demo-only and not derived from real or private peer data.
     """
 
     tenant_id: str
@@ -91,6 +85,7 @@ class RegionalComparisonResponse(BaseModel):
     global_median: float
 
     median_difference: float
+    label: str = DEMO_DATA_LABEL
 
 
 class BenchmarkTrendItem(BaseModel):
@@ -103,46 +98,19 @@ class BenchmarkTrendItem(BaseModel):
 class BenchmarkTrendResponse(BaseModel):
     tenant_id: str
     trend: list[BenchmarkTrendItem]
+    label: str = DEMO_DATA_LABEL
 
 
-# ============================================================
-# PG-26: Differential Privacy
-# ============================================================
-
-def generate_laplace_noise(scale: float) -> float:
-    """
-    Generate Laplace-distributed noise.
-    """
-
-    u = random.uniform(-0.5, 0.5)
-
-    if u == 0:
-        u = 1e-12
-
-    return -scale * math.copysign(
-        math.log(1 - 2 * abs(u)),
-        u,
-    )
+class BenchmarkCohort(BaseModel):
+    industry: str
+    region: str
+    size_band: str
+    peer_count: int
 
 
-def apply_laplace_noise(value: float) -> float:
-    """
-    Apply calibrated Laplace noise to a benchmark value.
-
-    The result is constrained to the valid security-score
-    range of 0-100 and rounded to two decimal places.
-    """
-
-    scale = SENSITIVITY / EPSILON
-
-    noisy_value = value + generate_laplace_noise(scale)
-
-    noisy_value = max(
-        0.0,
-        min(100.0, noisy_value),
-    )
-
-    return round(noisy_value, 2)
+class BenchmarkCohortsResponse(BaseModel):
+    minimum_peer_count: int
+    cohorts: list[BenchmarkCohort]
 
 
 # ============================================================
@@ -159,12 +127,22 @@ def apply_laplace_noise(value: float) -> float:
 #   v
 # PG-27: peer_count >= 10
 #   |
-#   v
-# PG-26: Laplace noise
 #   |
 #   v
-# Flat BenchmarkResult
+# Flat, explicitly labelled synthetic demo result
 # ============================================================
+
+@router.get(
+    "/cohorts",
+    response_model=BenchmarkCohortsResponse,
+)
+async def list_benchmark_cohorts() -> BenchmarkCohortsResponse:
+    cohorts = await get_available_benchmark_cohorts(MIN_PEER_GROUP_SIZE)
+    return BenchmarkCohortsResponse(
+        minimum_peer_count=MIN_PEER_GROUP_SIZE,
+        cohorts=cohorts,
+    )
+
 
 @router.post(
     "",
@@ -218,32 +196,15 @@ async def create_benchmark(
         )
 
     # --------------------------------------------------------
-    # Step 3: PG-26
-    # Apply Laplace noise to P25, Median and P75
-    # --------------------------------------------------------
-
-    noisy_25th = apply_laplace_noise(
-        float(peer["peer_25th"])
-    )
-
-    noisy_median = apply_laplace_noise(
-        float(peer["peer_median"])
-    )
-
-    noisy_75th = apply_laplace_noise(
-        float(peer["peer_75th"])
-    )
-
-    # --------------------------------------------------------
     # Step 4: Build flat BenchmarkResult
     #
-    # The current seeded demo repository contains aggregate
-    # cohort data rather than individual tenant scores.
+    # The current repository contains seeded synthetic
+    # aggregates, not real or private peer data. Return the
+    # stored values exactly and label the result accordingly.
     #
     # Therefore:
     # - tenant_id identifies the seeded demo cohort
-    # - percentile uses the cohort median as the demo
-    #   percentile position
+    # - percentile is the position of the cohort median
     # - trend starts empty because historical trend is exposed
     #   separately through /benchmark/trend/{tenant_id}
     # --------------------------------------------------------
@@ -254,17 +215,12 @@ async def create_benchmark(
         f"{peer['size_band']}"
     )
 
-    demo_percentile = round(
-        float(peer["peer_median"]),
-        2,
-    )
-
     return BenchmarkResult(
         tenant_id=demo_tenant_id,
-        percentile=demo_percentile,
-        peer_median=noisy_median,
-        peer_25th=noisy_25th,
-        peer_75th=noisy_75th,
+        percentile=50.0,
+        peer_median=float(peer["peer_median"]),
+        peer_25th=float(peer["peer_25th"]),
+        peer_75th=float(peer["peer_75th"]),
         peer_count=peer_count,
         trend=[],
         label=DEMO_DATA_LABEL,
@@ -408,6 +364,7 @@ async def compare_regional_benchmark(
         global_peer_count=global_peer_count,
         global_median=global_median,
         median_difference=median_difference,
+        label=DEMO_DATA_LABEL,
     )
 
 
@@ -521,4 +478,5 @@ async def get_benchmark_trend(
     return BenchmarkTrendResponse(
         tenant_id=tenant_id,
         trend=trend,
+        label=DEMO_DATA_LABEL,
     )
