@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: wallet-postgres
+    environment:
+      POSTGRES_USER: wallet_user
+      POSTGRES_PASSWORD: wallet_password
+      POSTGRES_DB: wallet_db
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f
+      - -c
+      - archive_timeout=60s
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_wal_archive:/var/lib/postgresql/wal_archive
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: wallet-redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "1G"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+      - "9644:9644"
+
+  wallet-service:
+    build: .
+    container_name: wallet-service
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://wallet_user:wallet_password@postgres:5432/wallet_db
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+    depends_on:
+      - postgres
+      - redpanda
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
+  postgres_wal_archive:
